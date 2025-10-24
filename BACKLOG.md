@@ -12,3 +12,5 @@
 - RBAC/SSO, SOC2 yol haritası, çoklu ortam yöneticisi
 
 - [MUST] 429 JSON gövdesi: error_page yerine @rate_limited için garantili body (njs/subrequest). Test: curl -i, PS stream read. 
+
+- [DONE] 429 JSON gövdesi ve Retry-After standardize edildi (nginx internal).

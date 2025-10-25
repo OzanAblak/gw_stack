@@ -1,0 +1,9 @@
+services:
+  cleaner:
+    image: alpine:3.20
+    container_name: cleaner
+    volumes:
+      - plans:/data
+    command: sh -c "apk add --no-cache findutils >/dev/null && while true; do find /data -type f -mmin +30 -delete; sleep 60; done"
+    restart: unless-stopped
+    networks: [gwnet]

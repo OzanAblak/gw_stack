@@ -1,0 +1,1 @@
+﻿PS C:\Users\DELL\Desktop\gw_stack> powershell -NoProfile -ExecutionPolicy Bypass -File .\gw_ops_gate.ps1

@@ -1,0 +1,4 @@
+services:
+  cleaner:
+    environment:
+      - CLEAN_TTL_MIN=0

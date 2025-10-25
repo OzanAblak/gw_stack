@@ -1,0 +1,291 @@
+﻿2025-10-23T13:10:09.4398853+03:00 PASS health=200 lat=132ms
+2025-10-23T13:10:09.9418639+03:00 FAIL df err
+2025-10-23T13:10:09.9491129+03:00 PASS running=3
+2025-10-23T13:10:10.6602698+03:00 FAIL 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:11:44.9063840+03:00 PASS health=200 lat=135ms
+2025-10-23T13:11:45.3970537+03:00 PASS plans=1%
+2025-10-23T13:11:45.4018933+03:00 PASS running=3
+2025-10-23T13:11:46.1525815+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:12:02.7768484+03:00 PASS health=200 lat=151ms
+2025-10-23T13:12:03.6820365+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:13:44.3613677+03:00 PASS health=200 lat=147ms
+2025-10-23T13:13:45.4352075+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:18:03.3287176+03:00 PASS health=200 lat=140ms
+2025-10-23T13:18:04.2591142+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:23:03.3214432+03:00 PASS health=200 lat=136ms
+2025-10-23T13:23:04.2455080+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:28:03.4169676+03:00 PASS health=200 lat=149ms
+2025-10-23T13:28:04.4320293+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:33:03.3373802+03:00 PASS health=200 lat=143ms
+2025-10-23T13:33:04.2991246+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:38:03.3559421+03:00 PASS health=200 lat=140ms
+2025-10-23T13:38:04.3275901+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:43:03.3968316+03:00 PASS health=200 lat=143ms
+2025-10-23T13:43:04.4261254+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:48:03.4234226+03:00 PASS health=200 lat=153ms
+2025-10-23T13:48:04.5322098+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:53:03.3499365+03:00 PASS health=200 lat=141ms
+2025-10-23T13:53:04.3003933+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T13:58:03.4589170+03:00 PASS health=200 lat=148ms
+2025-10-23T13:58:04.4419564+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:03:03.4420151+03:00 PASS health=200 lat=155ms
+2025-10-23T14:03:04.5286767+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:08:03.3959833+03:00 PASS health=200 lat=144ms
+2025-10-23T14:08:04.4233652+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:13:03.5125955+03:00 PASS health=200 lat=153ms
+2025-10-23T14:13:04.5860691+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:18:03.3460549+03:00 FAIL health err: Temel alınan bağlantı kapatıldı: Bağlantı beklenmedik bir şekilde kapatıldı.
+2025-10-23T14:18:04.3213208+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:23:03.4423946+03:00 PASS health=200 lat=150ms
+2025-10-23T14:23:04.4354068+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:28:03.5144979+03:00 PASS health=200 lat=181ms
+2025-10-23T14:28:04.6298558+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:33:03.5149222+03:00 PASS health=200 lat=148ms
+2025-10-23T14:33:04.5647210+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:38:03.4971582+03:00 PASS health=200 lat=146ms
+2025-10-23T14:38:04.5180087+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:43:03.4912631+03:00 PASS health=200 lat=152ms
+2025-10-23T14:43:04.4885376+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:48:03.5444164+03:00 PASS health=200 lat=148ms
+2025-10-23T14:48:04.7650290+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:53:03.5203538+03:00 PASS health=200 lat=158ms
+2025-10-23T14:53:04.5727699+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T14:58:03.5595423+03:00 PASS health=200 lat=170ms
+2025-10-23T14:58:04.6623383+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:03:03.4925449+03:00 PASS health=200 lat=147ms
+2025-10-23T15:03:04.4809190+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:08:03.6850796+03:00 PASS health=200 lat=168ms
+2025-10-23T15:08:04.9052204+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:13:03.5004859+03:00 PASS health=200 lat=141ms
+2025-10-23T15:13:04.5231299+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:18:03.6231045+03:00 PASS health=200 lat=177ms
+2025-10-23T15:18:04.7548402+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:23:03.5768976+03:00 PASS health=200 lat=157ms
+2025-10-23T15:23:04.9079366+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:28:03.5931310+03:00 PASS health=200 lat=167ms
+2025-10-23T15:28:04.6395567+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:33:03.6350588+03:00 PASS health=200 lat=161ms
+2025-10-23T15:33:04.7897763+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:38:03.5887036+03:00 PASS health=200 lat=152ms
+2025-10-23T15:38:04.7634874+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:43:03.7006394+03:00 PASS health=200 lat=197ms
+2025-10-23T15:43:04.8187904+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:48:03.6489329+03:00 PASS health=200 lat=174ms
+2025-10-23T15:48:04.8605732+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:53:03.6280246+03:00 PASS health=200 lat=155ms
+2025-10-23T15:53:04.8902381+03:00 PASS 8088 owner=com.docker.backend wslrelay
+2025-10-23T15:58:05.6276991+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T15:58:06.8122203+03:00 FAIL 8088 yok
+2025-10-23T16:03:05.6533016+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:03:07.0032201+03:00 FAIL 8088 yok
+2025-10-23T16:08:05.6768609+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:08:06.9221572+03:00 FAIL 8088 yok
+2025-10-23T16:13:05.6531183+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:13:06.7371411+03:00 FAIL 8088 yok
+2025-10-23T16:18:05.7530199+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:18:07.0569039+03:00 FAIL 8088 yok
+2025-10-23T16:23:05.6371395+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:23:06.6044743+03:00 FAIL 8088 yok
+2025-10-23T16:28:05.6698719+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:28:06.7890528+03:00 FAIL 8088 yok
+2025-10-23T16:33:05.6296666+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:33:06.7405515+03:00 FAIL 8088 yok
+2025-10-23T16:38:05.6648764+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:38:06.8234930+03:00 FAIL 8088 yok
+2025-10-23T16:43:05.6637316+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:43:06.6838273+03:00 FAIL 8088 yok
+2025-10-23T16:48:05.6538984+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:48:06.7987946+03:00 FAIL 8088 yok
+2025-10-23T16:53:05.6306602+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:53:06.7460399+03:00 FAIL 8088 yok
+2025-10-23T16:58:05.8789546+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T16:58:07.0781312+03:00 FAIL 8088 yok
+2025-10-23T17:03:04.6482398+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:03:06.0323128+03:00 FAIL 8088 yok
+2025-10-23T17:08:04.6183279+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:08:05.6762987+03:00 FAIL 8088 yok
+2025-10-23T17:13:04.7404203+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:13:06.1846476+03:00 FAIL 8088 yok
+2025-10-23T17:18:04.6578091+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:18:05.7855760+03:00 FAIL 8088 yok
+2025-10-23T17:23:04.7255146+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:23:05.8804572+03:00 FAIL 8088 yok
+2025-10-23T17:28:04.6873019+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:28:05.7359968+03:00 FAIL 8088 yok
+2025-10-23T17:33:04.7550655+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:33:06.1769465+03:00 FAIL 8088 yok
+2025-10-23T17:38:04.9045566+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:38:06.2748932+03:00 FAIL 8088 yok
+2025-10-23T17:43:04.7112182+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:43:05.9253082+03:00 FAIL 8088 yok
+2025-10-23T17:48:04.6795703+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:48:05.8108296+03:00 FAIL 8088 yok
+2025-10-23T17:53:04.6875989+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:53:05.7676437+03:00 FAIL 8088 yok
+2025-10-23T17:58:04.7186712+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T17:58:05.7381898+03:00 FAIL 8088 yok
+2025-10-23T18:03:04.7174062+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:03:05.8065652+03:00 FAIL 8088 yok
+2025-10-23T18:08:04.7211537+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:08:05.8242173+03:00 FAIL 8088 yok
+2025-10-23T18:13:04.8223940+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:13:05.9773183+03:00 FAIL 8088 yok
+2025-10-23T18:18:04.7427347+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:18:05.7919205+03:00 FAIL 8088 yok
+2025-10-23T18:23:04.9038606+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:23:06.0782340+03:00 FAIL 8088 yok
+2025-10-23T18:28:04.7621721+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:28:05.7763575+03:00 FAIL 8088 yok
+2025-10-23T18:33:04.8667287+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:33:05.9941183+03:00 FAIL 8088 yok
+2025-10-23T18:38:04.9638145+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:38:05.9700090+03:00 FAIL 8088 yok
+2025-10-23T18:43:04.8110764+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:43:05.8091836+03:00 FAIL 8088 yok
+2025-10-23T18:48:04.7898611+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:48:05.9571986+03:00 FAIL 8088 yok
+2025-10-23T18:53:05.0401634+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:53:06.1171211+03:00 FAIL 8088 yok
+2025-10-23T18:58:04.9019412+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T18:58:05.9122296+03:00 FAIL 8088 yok
+2025-10-23T19:03:04.9175484+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:03:05.8807109+03:00 FAIL 8088 yok
+2025-10-23T19:08:04.9490336+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:08:05.9402414+03:00 FAIL 8088 yok
+2025-10-23T19:13:04.9364853+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:13:05.8708230+03:00 FAIL 8088 yok
+2025-10-23T19:18:04.9234510+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:18:05.8648745+03:00 FAIL 8088 yok
+2025-10-23T19:23:04.9351307+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:23:05.8988805+03:00 FAIL 8088 yok
+2025-10-23T19:28:04.9411332+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:28:05.9663312+03:00 FAIL 8088 yok
+2025-10-23T19:33:04.9513998+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:33:05.8660823+03:00 FAIL 8088 yok
+2025-10-23T19:38:04.9480424+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:38:05.8594845+03:00 FAIL 8088 yok
+2025-10-23T19:43:04.9520864+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:43:05.9621333+03:00 FAIL 8088 yok
+2025-10-23T19:48:04.9790870+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:48:05.9274375+03:00 FAIL 8088 yok
+2025-10-23T19:53:04.9507434+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:53:05.8597627+03:00 FAIL 8088 yok
+2025-10-23T19:58:04.9325889+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T19:58:05.7885702+03:00 FAIL 8088 yok
+2025-10-23T20:03:04.9121862+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:03:05.9718787+03:00 FAIL 8088 yok
+2025-10-23T20:08:05.0048015+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:08:05.9998576+03:00 FAIL 8088 yok
+2025-10-23T20:13:04.9816024+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:13:05.9280706+03:00 FAIL 8088 yok
+2025-10-23T20:18:04.9562017+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:18:05.8522472+03:00 FAIL 8088 yok
+2025-10-23T20:23:05.0935375+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:23:06.0462043+03:00 FAIL 8088 yok
+2025-10-23T20:28:04.9982759+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:28:06.0209081+03:00 FAIL 8088 yok
+2025-10-23T20:33:04.9941221+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:33:05.9384875+03:00 FAIL 8088 yok
+2025-10-23T20:38:05.0208478+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:38:05.9247432+03:00 FAIL 8088 yok
+2025-10-23T20:43:05.0144377+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:43:05.9004469+03:00 FAIL 8088 yok
+2025-10-23T20:48:05.0020429+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:48:05.9001948+03:00 FAIL 8088 yok
+2025-10-23T20:53:05.0408761+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:53:06.0558041+03:00 FAIL 8088 yok
+2025-10-23T20:58:05.0538017+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T20:58:06.0043802+03:00 FAIL 8088 yok
+2025-10-23T21:03:05.0263612+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:03:05.9568588+03:00 FAIL 8088 yok
+2025-10-23T21:08:05.0482525+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:08:05.9983465+03:00 FAIL 8088 yok
+2025-10-23T21:13:05.0406102+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:13:05.9286554+03:00 FAIL 8088 yok
+2025-10-23T21:18:05.0657927+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:18:05.9732889+03:00 FAIL 8088 yok
+2025-10-23T21:23:05.0734189+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:23:05.9733419+03:00 FAIL 8088 yok
+2025-10-23T21:28:05.0666131+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:28:05.9644702+03:00 FAIL 8088 yok
+2025-10-23T21:33:05.0711085+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:33:06.0266111+03:00 FAIL 8088 yok
+2025-10-23T21:38:05.0794202+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:38:05.9990938+03:00 FAIL 8088 yok
+2025-10-23T21:43:05.0894917+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:43:06.0056974+03:00 FAIL 8088 yok
+2025-10-23T21:48:05.1204694+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:48:06.1440413+03:00 FAIL 8088 yok
+2025-10-23T21:53:05.1321243+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:53:06.0154555+03:00 FAIL 8088 yok
+2025-10-23T21:58:05.1603821+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T21:58:06.1266466+03:00 FAIL 8088 yok
+2025-10-23T22:03:05.1314099+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T22:03:06.0275634+03:00 FAIL 8088 yok
+2025-10-23T22:08:05.1347201+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T22:08:06.1166551+03:00 FAIL 8088 yok
+2025-10-23T22:13:05.1661072+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T22:13:06.0590420+03:00 FAIL 8088 yok
+2025-10-23T22:18:05.1551466+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T22:18:06.0769870+03:00 FAIL 8088 yok
+2025-10-23T22:23:05.1312993+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-23T22:23:06.0615987+03:00 FAIL 8088 yok
+2025-10-24T10:03:06.1488914+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:03:09.8854425+03:00 FAIL 8088 yok
+2025-10-24T10:08:05.9531039+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:08:06.0652097+03:00 FAIL compose ps err
+2025-10-24T10:08:07.7377846+03:00 FAIL 8088 yok
+2025-10-24T10:13:05.2710398+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:13:06.6657559+03:00 FAIL 8088 yok
+2025-10-24T10:18:05.3083770+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:18:06.7853439+03:00 FAIL 8088 yok
+2025-10-24T10:23:05.2825108+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:23:06.4668102+03:00 FAIL 8088 yok
+2025-10-24T10:28:05.3379281+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:28:06.6492472+03:00 FAIL 8088 yok
+2025-10-24T10:33:05.4053279+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:33:06.7556540+03:00 FAIL 8088 yok
+2025-10-24T10:38:05.2786781+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:38:06.4620078+03:00 FAIL 8088 yok
+2025-10-24T10:43:05.2380962+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:43:06.3916704+03:00 FAIL 8088 yok
+2025-10-24T10:48:05.3528983+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:48:06.5836595+03:00 FAIL 8088 yok
+2025-10-24T10:53:05.4997540+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:53:06.8886486+03:00 FAIL 8088 yok
+2025-10-24T10:58:05.2898679+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T10:58:06.3596894+03:00 FAIL 8088 yok
+2025-10-24T11:03:05.2915774+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:03:06.3726314+03:00 FAIL 8088 yok
+2025-10-24T11:08:05.2947050+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:08:06.3835159+03:00 FAIL 8088 yok
+2025-10-24T11:13:05.3226610+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:13:06.4140809+03:00 FAIL 8088 yok
+2025-10-24T11:18:05.4067528+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:18:06.6351002+03:00 FAIL 8088 yok
+2025-10-24T11:23:05.4396260+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:23:06.5393934+03:00 FAIL 8088 yok
+2025-10-24T11:28:04.4484951+03:00 FAIL health err: Temel alınan bağlantı kapatıldı: Bağlantı beklenmedik bir şekilde kapatıldı.
+2025-10-24T11:28:05.8904968+03:00 PASS 8088 listener netstat
+2025-10-24T11:33:05.4030681+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:33:06.6717649+03:00 FAIL 8088 yok
+2025-10-24T11:38:05.3913089+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:38:06.5843219+03:00 FAIL 8088 yok
+2025-10-24T11:43:05.3927936+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:43:06.6147558+03:00 FAIL 8088 yok
+2025-10-24T11:48:05.3708074+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:48:06.4392078+03:00 FAIL 8088 yok
+2025-10-24T11:53:05.5526524+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:53:06.9578962+03:00 FAIL 8088 yok
+2025-10-24T11:58:05.4822757+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T11:58:06.7108833+03:00 FAIL 8088 yok
+2025-10-24T12:03:05.4333395+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T12:03:06.5484164+03:00 FAIL 8088 yok
+2025-10-24T12:08:05.4527003+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T12:08:06.7091601+03:00 FAIL 8088 yok
+2025-10-24T12:13:05.5244271+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T12:13:06.7166225+03:00 FAIL 8088 yok
+2025-10-24T12:18:05.4522360+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T12:18:06.6423223+03:00 FAIL 8088 yok
+2025-10-24T12:23:05.4238267+03:00 FAIL health err: Uzak sunucuya bağlanılamıyor
+2025-10-24T12:23:06.4503599+03:00 FAIL 8088 yok

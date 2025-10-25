@@ -1,0 +1,23 @@
+﻿services:
+  gateway:
+    ports: ["18088:80"]
+    depends_on:
+      planner:
+        condition: service_healthy
+  planner:
+    ports: ["19090:9090"]
+    environment:
+      PLAN_TTL_MIN: "5"
+      PLAN_TOMBSTONE_MIN: "10"
+      PLAN_TOMBSTONE_DIR: "/plans/tombstones"
+    volumes:
+      - ./plans:/plans
+    healthcheck:
+      test: ["CMD-SHELL","python -c \"import urllib.request,sys;sys.exit(0) if urllib.request.urlopen('http://localhost:9090/health',timeout=2).status==200 else sys.exit(1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+networks:
+  default:
+    name: gw_net

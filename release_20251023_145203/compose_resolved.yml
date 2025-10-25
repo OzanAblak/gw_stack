@@ -1,0 +1,58 @@
+﻿name: gw_stack
+services:
+  cleaner:
+    command:
+      - sh
+      - -c
+      - while true; do find /plans -mmin +30 -type f -delete; sleep 60; done
+    environment:
+      CLEAN_TTL_MIN: "30"
+    image: alpine:3.20
+    networks:
+      gwnet: null
+    volumes:
+      - type: volume
+        source: plans
+        target: /plans
+        volume: {}
+  gateway:
+    build:
+      context: C:\Users\DELL\Desktop\gw_stack\gateway
+      dockerfile: Dockerfile
+    depends_on:
+      planner:
+        condition: service_started
+        required: true
+    networks:
+      gwnet: null
+    ports:
+      - mode: ingress
+        target: 8088
+        published: "8088"
+        protocol: tcp
+      - mode: ingress
+        target: 80
+        published: "8095"
+        protocol: tcp
+  planner:
+    build:
+      context: C:\Users\DELL\Desktop\gw_stack\planner
+      dockerfile: Dockerfile
+    networks:
+      gwnet: null
+    ports:
+      - mode: ingress
+        target: 9090
+        published: "9090"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: plans
+        target: /plans
+        volume: {}
+networks:
+  gwnet:
+    name: gw_stack_gwnet
+volumes:
+  plans:
+    name: gw_stack_plans

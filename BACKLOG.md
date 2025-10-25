@@ -19,3 +19,5 @@
 - Durum: TODO
 - Açıklama: Expire sonrası 404 yerine 410 döndür. Çözüm: planner GET için tombstone veya soft-delete katmanı.
 - Not: Env PLAN_TTL_MIN compose override içinde sabitlenmeli.
+
+- TTL → 410 tombstone: **DONE** (2025-10-25)

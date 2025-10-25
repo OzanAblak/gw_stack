@@ -1,0 +1,25 @@
+﻿# DEVRİ ÖZETİ — L2 (Kısa)
+
+## Durum
+- Up
+  - gateway : 8088 → /health 200 | security headers OK | CORS OK
+  - planner : 9090 → /health 200 | TTL logic aktif
+  - cleaner : UP | CLEAN_TTL_MIN (override kapalı)
+  - Ağ/Volume: gwnet OK | /plans OK
+- Smoke/CI: PASS (local), ci.yml hazır
+
+## Doğrulananlar
+- T12: Güvenlik başlıkları → PASS
+- T13: CORS preflight → PASS
+- T14: Rate limit → PASS (restore 10r/s, burst=20)
+- T15: Akış (compile→get) → PASS
+
+## Açık Sorun
+- Yok (8088 wslrelay bilerek izinli)
+
+## Yarın T0
+- Soak test (1 saat health ping), log rotasyonu, dokümantasyon
+
+## Protokol
+- Adım-geçit. PASS olmadan yeni adım yok.
+- Devir özeti: tek blok, kopyalanabilir.

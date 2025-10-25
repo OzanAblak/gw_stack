@@ -1,0 +1,22 @@
+﻿services:
+  planner:
+    build: ./planner
+    ports: ["9090:9090"]
+    networks: [gwnet]
+    volumes: ["plans:/plans"]
+
+  gateway:
+    build: ./gateway
+    ports: ["8088:8088"]
+    depends_on: [planner]
+    networks: [gwnet]
+
+  cleaner:
+    image: alpine:3.20
+    command: sh -c "while true; do find /plans -mmin +${CLEAN_TTL_MIN:-30} -type f -delete; sleep 60; done"
+    environment: ["CLEAN_TTL_MIN=30"]
+    volumes: ["plans:/plans"]
+    networks: [gwnet]
+
+networks: { gwnet: {} }
+volumes: { plans: {} }

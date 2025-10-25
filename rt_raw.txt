@@ -1,0 +1,25 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20251023130612
+Username: OZANA\DELL
+RunAs User: OZANA\DELL
+Configuration Name: 
+Machine: OZANA (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 21572
+PSVersion: 5.1.26100.6899
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.6899
+BuildVersion: 10.0.26100.6899
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+PS C:\Users\DELL\Desktop\gw_stack> powershell -NoProfile -ExecutionPolicy Bypass -File .\gw_rt_diag.ps1
+
+PS C:\Users\DELL\Desktop\gw_stack> Stop-Transcript | Out-Null
+**********************
+Windows PowerShell transcript end
+End time: 20251023130621
+**********************

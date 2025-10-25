@@ -1,0 +1,4 @@
+services:
+  planner:
+    environment:
+      - PLAN_TTL_MIN=0

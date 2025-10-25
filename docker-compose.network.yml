@@ -1,0 +1,4 @@
+networks:
+  gwnet:
+    external: true
+    name: gwnet

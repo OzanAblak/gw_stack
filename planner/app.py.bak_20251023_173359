@@ -1,0 +1,37 @@
+﻿from flask import Flask, jsonify, Response
+import os, time, uuid, json, pathlib
+app = Flask(__name__)
+STORE = pathlib.Path("/plans"); STORE.mkdir(exist_ok=True)
+TTLMIN = int(os.getenv("PLAN_TTL_MIN","5"))
+
+def gc():
+    ttl = TTLMIN * 60
+    now = time.time()
+    for p in STORE.glob("*.json"):
+        try:
+            if now - p.stat().st_mtime > ttl:
+                p.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+@app.get("/health")
+def health():
+    return Response("ok", 200, {"Content-Type":"text/plain"})
+
+@app.post("/v1/plan/compile")
+def compile_plan():
+    gc()
+    pid = str(uuid.uuid4())
+    (STORE / f"{pid}.json").write_text(json.dumps({"ok": True}))
+    return jsonify(planId=pid)
+
+@app.get("/v1/plan/<pid>")
+def get_plan(pid):
+    gc()
+    p = STORE / f"{pid}.json"
+    if not p.exists():
+        return ("", 404)
+    return Response(p.read_text(), 200, {"Content-Type":"application/json"})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=9090)

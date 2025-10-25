@@ -1,0 +1,6 @@
+﻿=== docker ps ===
+gateway | Up 2 hours | 0.0.0.0:8088->80/tcp, [::]:8088->80/tcp
+planner | Up 2 hours | 0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp
+=== compose ps ===
+NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+

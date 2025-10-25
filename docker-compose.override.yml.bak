@@ -1,0 +1,9 @@
+services:
+  planner:
+    entrypoint: ["python"]
+    command: ["/overlay/app.py"]
+    volumes:
+      - C:\Users\DELL\Desktop\gw_stack\planner_overlay:/overlay:rw
+  gateway:
+    volumes:
+      - C:\Users\DELL\Desktop\gw_stack\gateway_overlay\default.conf:/etc/nginx/conf.d/default.conf:ro

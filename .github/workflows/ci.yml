@@ -1,47 +1,42 @@
-﻿name: gw_stack_ci
+﻿name: ci
+
 on:
   push:
     branches: ["main"]
   pull_request:
-  workflow_dispatch:
+
 jobs:
-  test:
+  e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y jq
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Compose up
+
+      - name: Docker info
         run: |
-          docker compose -f docker-compose.yml up -d --build
-          docker compose ps
-      - name: Wait for health
+          docker version
+          docker compose version
+
+      - name: Build and start
+        run: docker compose up -d --build planner gateway
+
+      - name: Wait for gateway
         run: |
-          for i in {1..60}; do
-            s1=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/health || true)
-            s2=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9090/health || true)
-            if [ "$s1" = "200" ] && [ "$s2" = "200" ]; then echo "health ok"; exit 0; fi
+          for i in {1..30}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18088/health || true)
+            if [ "$code" = "200" ]; then exit 0; fi
             sleep 2
           done
-          echo "health failed"
-          docker compose logs --no-color > compose_logs.txt || true
+          echo "gateway health not 200"
+          docker compose logs gateway planner
           exit 1
-      - name: Plan compile + get
+
+      - name: E2E
         run: |
-          pid=$(curl -s -X POST http://127.0.0.1:8088/v1/plan/compile | jq -r '.planId')
-          test -n "$pid"
-          sleep 2
-          code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/v1/plan/$pid)
-          test "$code" = "200"
-      - name: Compose down
+          plan=$(curl -s -H 'Content-Type: application/json' -d '{}' http://localhost:18088/v1/plan/compile | python3 -c "import sys,json; print(json.load(sys.stdin)['planId'])")
+          [ -n "$plan" ] || { echo "no planId"; exit 1; }
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18088/v1/plan/$plan)
+          [ "$code" = "200" ] || { echo "get $code"; exit 1; }
+
+      - name: Teardown
         if: always()
         run: docker compose down -v
-      - name: Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: compose_logs
-          path: compose_logs.txt

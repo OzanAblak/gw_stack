@@ -38,10 +38,10 @@ try{
     $ns=netstat -ano | Select-String -Pattern "0\.0\.0\.0:8088|127\.0\.0\.1:8088"
     if(-not $ns){ Fail "T4: 8088 dinleyen yok" } else { Write-Host "T4: 8088 listener bulundu (netstat)" }
   } else {
-    $pid=$ln.OwningProcess
-    $p=Get-Process -Id $pid -ErrorAction SilentlyContinue
+    $PlanId=$ln.OwningProcess
+    $p=Get-Process -Id $PlanId -ErrorAction SilentlyContinue
     $name=$p.ProcessName
-    Write-Host "T4: 8088 owner PID=$pid Name=$name"
+    Write-Host "T4: 8088 owner PID=$PlanId Name=$name"
     if($name -notmatch 'docker|com\.docker|docker-desktop|docker-proxy'){ Fail "T4: 8088 docker dışında ($name)" }
   }
 

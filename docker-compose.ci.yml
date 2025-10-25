@@ -1,0 +1,5 @@
+﻿services:
+  planner:
+    environment:
+      PLAN_TTL_MIN: "1"
+      PLAN_TOMBSTONE_MIN: "2"

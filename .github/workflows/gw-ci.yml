@@ -1,5 +1,5 @@
 ﻿name: gw-ci
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   ttl410:
     runs-on: ubuntu-latest

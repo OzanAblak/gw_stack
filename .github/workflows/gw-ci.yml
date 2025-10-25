@@ -20,6 +20,8 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build
           docker compose ps
       - name: wait health
+        id: wait_health
+        continue-on-error: true
         run: |
           GATEWAY_ID=$(docker ps -qf "name=gateway")
           PLANNER_ID=$(docker ps -qf "name=planner")
@@ -63,3 +65,6 @@ jobs:
         with:
           name: gw-artefacts
           path: artefacts
+      - name: fail if wait-health failed
+        if: steps.wait_health.outcome != 'success'
+        run: exit 1

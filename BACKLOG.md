@@ -14,3 +14,8 @@
 - [MUST] 429 JSON gövdesi: error_page yerine @rate_limited için garantili body (njs/subrequest). Test: curl -i, PS stream read. 
 
 - [DONE] 429 JSON gövdesi ve Retry-After standardize edildi (nginx internal).
+
+## TTL → 410 dönüşümü
+- Durum: TODO
+- Açıklama: Expire sonrası 404 yerine 410 döndür. Çözüm: planner GET için tombstone veya soft-delete katmanı.
+- Not: Env PLAN_TTL_MIN compose override içinde sabitlenmeli.

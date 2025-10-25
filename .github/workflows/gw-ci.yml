@@ -17,13 +17,17 @@ jobs:
           done
           exit 1
       - name: compile
-        run: echo "PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile -H '\''Content-Type: application/json'\'' -d '\''{}'\'' | jq -r .planId)" >> $GITHUB_ENV
+        run: |
+          PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile -H "Content-Type: application/json" -d '{}' | jq -r .planId)
+          echo "PLANID=$PLANID" >> $GITHUB_ENV
       - name: assert 200
-        run: curl -fsS -o resp.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code.txt | grep -q '^200$'
+        run: |
+          curl -fsS -o resp.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code.txt | grep -q '^200$'
       - name: wait ttl
         run: sleep 70
       - name: assert 410
-        run: curl -fsS -o resp_ttl.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code_ttl.txt | grep -q '^410$'
+        run: |
+          curl -fsS -o resp_ttl.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code_ttl.txt | grep -q '^410$'
       - name: lint nginx
         run: docker exec $(docker ps -qf "name=gateway") nginx -t
       - name: artefacts

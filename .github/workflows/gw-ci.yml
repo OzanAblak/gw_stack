@@ -21,24 +21,33 @@ jobs:
           docker compose ps
       - name: wait health
         run: |
-          for i in {1..90}; do
-            curl -fsS http://localhost:18088/health >/dev/null && curl -fsS http://localhost:19090/health >/dev/null && exit 0
+          GATEWAY_ID=$(docker ps -qf "name=gateway")
+          PLANNER_ID=$(docker ps -qf "name=planner")
+          GW_PORT=$(docker inspect -f '{{(index (index .NetworkSettings.Ports "80/tcp") 0).HostPort}}' "$GATEWAY_ID")
+          PL_PORT=$(docker inspect -f '{{(index (index .NetworkSettings.Ports "9090/tcp") 0).HostPort}}' "$PLANNER_ID")
+          echo "GW_PORT=$GW_PORT PL_PORT=$PL_PORT"
+          echo "GW_PORT=$GW_PORT" >> $GITHUB_ENV
+          echo "PL_PORT=$PL_PORT" >> $GITHUB_ENV
+          for i in {1..120}; do
+            curl -fsS "http://localhost:$GW_PORT/health" >/dev/null && curl -fsS "http://localhost:$PL_PORT/health" >/dev/null && exit 0
             sleep 2
           done
-          docker compose ps
+          echo "::group::docker compose ps"; docker compose ps; echo "::endgroup::"
+          echo "::group::gateway logs"; docker compose logs gateway | tail -n 200; echo "::endgroup::"
+          echo "::group::planner logs"; docker compose logs planner | tail -n 200; echo "::endgroup::"
           exit 1
       - name: compile
         run: |
-          PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile -H "Content-Type: application/json" -d '{}' | jq -r .planId)
+          PLANID=$(curl -fsS -X POST http://localhost:$GW_PORT/v1/plan/compile -H "Content-Type: application/json" -d '{}' | jq -r .planId)
           echo "PLANID=$PLANID" >> $GITHUB_ENV
       - name: assert 200
         run: |
-          curl -fsS -o resp.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code.txt | grep -q '^200$'
+          curl -fsS -o resp.json -w "%{http_code}\n" http://localhost:$GW_PORT/v1/plan/$PLANID | tee code.txt | grep -q '^200$'
       - name: wait ttl
         run: sleep 70
       - name: assert 410
         run: |
-          curl -fsS -o resp_ttl.json -w "%{http_code}\n" http://localhost:18088/v1/plan/$PLANID | tee code_ttl.txt | grep -q '^410$'
+          curl -fsS -o resp_ttl.json -w "%{http_code}\n" http://localhost:$GW_PORT/v1/plan/$PLANID | tee code_ttl.txt | grep -q '^410$'
       - name: lint nginx
         run: docker exec $(docker ps -qf "name=gateway") nginx -t
       - name: collect logs
@@ -48,7 +57,7 @@ jobs:
           docker compose ps > artefacts/compose.ps.txt || true
           docker ps -a > artefacts/docker.ps-a.txt || true
           docker compose logs --no-color > artefacts/compose.logs.txt || true
-          printf "PORT=18088 | HEALTH=200 | PLANID=%s | GET=200/410 | SUMMARY=PASS\n" "$PLANID" > artefacts/report.txt || true
+          printf "PORT=%s | HEALTH=200 | PLANID=%s | GET=200/410 | SUMMARY=PASS\n" "$GW_PORT" "$PLANID" > artefacts/report.txt || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

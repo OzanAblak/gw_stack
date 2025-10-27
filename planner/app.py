@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from flask import Flask, request, g, jsonify
 
 TTL_SECONDS = int(os.getenv("GW_TTL_SECONDS", "70"))
+VERSION = os.getenv("GW_VERSION", "v0.1.0")
+COMMIT  = os.getenv("GW_COMMIT",  "local")
 
 # ---- JSON logger (stdlib) ----
 logger = logging.getLogger("planner")
@@ -55,7 +57,7 @@ def _after(resp):
 
 @app.get("/health")
 def health():
-    return jsonify({"ok": "ok"})
+    return jsonify({"ok": "ok", "version": VERSION, "commit": COMMIT})
 
 @app.post("/v1/plan/compile")
 def compile_plan():

@@ -61,3 +61,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-9: compose ile GW_VERSION/GW_COMMIT aktarıldı; health ve akış doğrulandı
 
 - Kapı-11: UI auto-poll/TTL/hata yüzeyi eklendi
+
+- Kapı-12: planner Dockerfile ARG→ENV; /health version/commit kalıcı

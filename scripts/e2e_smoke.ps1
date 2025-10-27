@@ -10,7 +10,7 @@ $ProgressPreference = 'SilentlyContinue'
 Write-Host "E2E start: $Base"
 
 # Health
-Invoke-WebRequest -UseBasicParsing "$Base/health" | Out-Null
+Invoke-WebRequest "$Base/health" | Out-Null
 
 # Compile
 $plan = Invoke-RestMethod -Method POST -Uri "$Base/v1/plan/compile"
@@ -28,7 +28,7 @@ $deadline = (Get-Date).AddSeconds($DeadlineSeconds)
 $code = 0
 while((Get-Date) -lt $deadline){
   try{
-    $c = (Invoke-WebRequest -UseBasicParsing -Uri "$Base/v1/plan/$PLANID").StatusCode
+    $c = (Invoke-WebRequest -Uri "$Base/v1/plan/$PLANID").StatusCode
     if($c -eq 410){ $code = 410; break }
   } catch {
     $c = $_.Exception.Response.StatusCode.value__
@@ -42,3 +42,4 @@ $port = ([uri]$Base).Port
 if($port -eq 0){ $port = 80 }
 Write-Host ("SUMMARY PORT={0} PLANID={1} RESULT=PASS" -f $port, $PLANID)
 exit 0
+

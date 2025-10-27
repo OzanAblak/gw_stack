@@ -41,3 +41,5 @@
 
 ## BEŞ SATIR RAPOR
 PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
+
+- Kapı-4: gateway reload + rate-limit test; 429 sayısı=0

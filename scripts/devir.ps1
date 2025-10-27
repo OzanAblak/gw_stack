@@ -81,6 +81,7 @@ function Add-KritikNot {
   )
   $file = "docs/faz-$N/devir_ozeti.md"
   if (!(Test-Path $file)) { throw "Bulunamadı: $file" }
-  Add-Content -Path $file -Value "`n- " + ($Lines -join "`n- ")
+  $payload = "`n- " + ($Lines -join "`n- ")
+  Add-Content -Path $file -Value $payload
   Write-Host "Eklendi: $file"
 }

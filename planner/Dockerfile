@@ -10,10 +10,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# requirements'ta olmasa bile waitress'ı garanti kur
+RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir waitress
 
 COPY . .
 EXPOSE 9090
 
-# Prod: waitress; dev için app.py __main__ zaten var
-CMD ["python","-m","waitress","--listen=0.0.0.0:9090","app:app"]
+# Doğru giriş: waitress-serve
+CMD ["waitress-serve","--listen=0.0.0.0:9090","app:app"]

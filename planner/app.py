@@ -13,19 +13,11 @@ _handler.setFormatter(logging.Formatter("%(message)s"))
 logger.handlers = [_handler]
 logger.propagate = False
 
-def _now_ts() -> int:
-    return int(time.time())
-
-def _iso_utc() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def _now_ts() -> int: return int(time.time())
+def _iso_utc() -> str: return datetime.now(timezone.utc).isoformat()
 
 def jlog(event: str, **fields):
-    base = {
-        "ts": _iso_utc(),
-        "level": "INFO",
-        "event": event,
-        "request_id": getattr(g, "request_id", None),
-    }
+    base = {"ts": _iso_utc(), "level": "INFO", "event": event, "request_id": getattr(g, "request_id", None)}
     base.update(fields)
     logger.info(json.dumps(base, ensure_ascii=False))
 
@@ -42,25 +34,26 @@ def _before():
 def _after(resp):
     rid = getattr(g, "request_id", "")
     resp.headers["X-Request-ID"] = rid
-    start_ts = getattr(g, "start", time.time())
-    latency_ms = int((time.time() - start_ts) * 1000)
-    jlog(
-        "http",
-        method=request.method,
-        path=request.path,
-        status=resp.status_code,
-        latency_ms=latency_ms,
-        remote_addr=request.headers.get("X-Forwarded-For", request.remote_addr),
-        ua=request.headers.get("User-Agent", "-"),
-    )
+    try:
+        start_ts = getattr(g, "start", time.time())
+        latency_ms = int((time.time() - start_ts) * 1000)
+        jlog("http",
+             method=request.method,
+             path=request.path,
+             status=resp.status_code,
+             latency_ms=latency_ms,
+             remote_addr=request.headers.get("X-Forwarded-For", request.remote_addr),
+             ua=request.headers.get("User-Agent", "-"))
+    except Exception as e:
+        err = {"ts": _iso_utc(), "level":"ERROR", "event":"after_request_log_fail",
+               "request_id": rid, "error": str(e), "type": type(e).__name__}
+        logger.error(json.dumps(err, ensure_ascii=False))
     return resp
 
-# ---- Global hata yakalayıcı ----
 @app.errorhandler(Exception)
 def _on_error(e):
     jlog("unhandled_exception", error=str(e), exc_type=type(e).__name__, tb=traceback.format_exc())
-    resp = {"error":"internal","type":type(e).__name__}
-    return jsonify(resp), 500
+    return jsonify({"error":"internal","type":type(e).__name__}), 500
 
 @app.get("/health")
 def health():
@@ -68,35 +61,35 @@ def health():
 
 @app.post("/v1/plan/compile")
 def compile_plan():
-    pid = str(uuid.uuid4())  # 36 hane
-    _store[pid] = {"ts": _now_ts()}
-    jlog("compile", plan_id=pid)
-    return jsonify({"planId": pid})
+    plan_id = str(uuid.uuid4())
+    _store[plan_id] = {"ts": _now_ts()}
+    jlog("compile", plan_id=plan_id)
+    return jsonify({"planId": plan_id})
 
-def _ttl(pid: str):
-    age = _now_ts() - _store[pid]["ts"]
+def _ttl(plan_id: str):
+    age = _now_ts() - _store[plan_id]["ts"]
     return max(0, TTL_SECONDS - age), age
 
-@app.get("/v1/plan/<pid>")
-def get_plan(pid):
-    if pid not in _store:
-        jlog("get_plan_not_found", plan_id=pid)
+@app.get("/v1/plan/<plan_id>")
+def get_plan(plan_id):
+    if plan_id not in _store:
+        jlog("get_plan_not_found", plan_id=plan_id)
         return jsonify({"error": "not_found"}), 404
-    ttl, age = _ttl(pid)
+    ttl, age = _ttl(plan_id)
     if ttl <= 0:
-        jlog("get_plan_gone", plan_id=pid, age=age)
+        jlog("get_plan_gone", plan_id=plan_id, age=age)
         return jsonify({"error": "gone", "age": age}), 410
-    jlog("get_plan_ok", plan_id=pid, age=age, ttl=ttl)
-    return jsonify({"id": pid, "age": age, "ttl": ttl})
+    jlog("get_plan_ok", plan_id=plan_id, age=age, ttl=ttl)
+    return jsonify({"id": plan_id, "age": age, "ttl": ttl})
 
-@app.get("/v1/plan/<pid>/debug")
-def dbg(pid):
-    if pid not in _store:
-        jlog("debug_not_found", plan_id=pid)
+@app.get("/v1/plan/<plan_id>/debug")
+def dbg(plan_id):
+    if plan_id not in _store:
+        jlog("debug_not_found", plan_id=plan_id)
         return jsonify({"error": "not_found"}), 404
-    ttl, age = _ttl(pid)
-    jlog("debug", plan_id=pid, age=age, ttl=ttl, tombstone=(ttl == 0))
-    return jsonify({"id": pid, "age": age, "ttl": ttl, "tombstone": ttl == 0})
+    ttl, age = _ttl(plan_id)
+    jlog("debug", plan_id=plan_id, age=age, ttl=ttl, tombstone=(ttl == 0))
+    return jsonify({"id": plan_id, "age": age, "ttl": ttl, "tombstone": ttl == 0})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9090)

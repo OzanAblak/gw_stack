@@ -55,3 +55,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Teşhis paketi çalıştırıldı: ps/nginx-test/log/health/flow
 
 - Kapı-8: global error handler eklendi; bağlantı kapanmaları 500 JSON'a dönüştürüldü
+
+- Kapı-8: after_request try/except ve 3930f087-0484-4ad0-a66b-c05bc724cfe5 kullanımı; bağlantı kapanması giderildi

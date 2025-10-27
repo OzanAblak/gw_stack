@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, request
 from datetime import datetime, timedelta, timezone
-import uuid
+import uuid, os
 
 app = Flask(__name__)
 
-TTL_SECONDS = 70  # GW TTL
+TTL_SECONDS = int(os.getenv("GW_TTL_SECONDS", "70"))  # GW TTL
 plans = {}  # id -> {"created_at": datetime, "tombstone": bool}
+
 
 @app.get("/health")
 def health():

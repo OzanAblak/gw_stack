@@ -1,6 +1,8 @@
 services:
   planner:
     build: ./planner
+    environment:
+      GW_TTL_SECONDS: "70"
     ports:
       - "19090:9090"
     restart: unless-stopped

@@ -12,6 +12,8 @@ concurrency:
 jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,14 +27,14 @@ jobs:
       - name: Start stack
         run: docker compose up -d
 
-      - name: Wait for services (robust)
+      - name: Wait for services
         run: |
           set -e
-          echo "Waiting for gateway..."
           deadline=$((SECONDS+240))
+          echo "Waiting for gateway..."
           until curl -fsS http://localhost:18088/health; do
             if [ $SECONDS -ge $deadline ]; then
-              echo "::error::gateway health timeout"
+              echo "gateway health timeout"
               docker compose ps || true
               docker compose logs --no-color gateway || true
               exit 1
@@ -43,7 +45,7 @@ jobs:
           deadline=$((SECONDS+240))
           until curl -fsS http://localhost:19090/health; do
             if [ $SECONDS -ge $deadline ]; then
-              echo "::error::planner health timeout"
+              echo "planner health timeout"
               docker compose ps || true
               docker compose logs --no-color planner || true
               exit 1
@@ -54,32 +56,35 @@ jobs:
       - name: UI smoke
         run: curl -fsS http://localhost:18088/
 
-      - name: API smoke via gateway
-           - name: E2E smoke via bash
+      - name: Install jq
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Compile planId
         run: |
-          set -euo pipefail
+          set -e
           PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile | jq -r .planId)
           test ${#PLANID} -eq 36
-          # 200 bekle
-          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/$PLANID")
+          echo "PLANID=$PLANID" >> $GITHUB_ENV
+
+      - name: API smoke via gateway
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/${PLANID}")
           test "$code" = "200"
-          # TTL→410
+
+      - name: E2E TTL→410
+        run: |
+          set -euo pipefail
           deadline=$((SECONDS+240))
           while [ $SECONDS -lt $deadline ]; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/$PLANID")
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/${PLANID}")
             [ "$code" = "410" ] && exit 0
             sleep 5
           done
-          echo "E2E timeout"
-          docker compose logs --no-color
+          echo "E2E timeout waiting for 410"
+          docker compose ps || true
+          docker compose logs --no-color || true
           exit 1
-
-
-        run: |
-          sudo apt-get update -y && sudo apt-get install -y jq
-          PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile | jq -r .planId)
-          test ${#PLANID} -eq 36
-          curl -fsS "http://localhost:18088/v1/plan/$PLANID"
 
       - name: Show logs on failure
         if: ${{ failure() }}

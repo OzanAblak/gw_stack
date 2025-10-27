@@ -6,7 +6,6 @@ TTL_SECONDS = int(os.getenv("GW_TTL_SECONDS", "70"))
 VERSION = os.getenv("GW_VERSION", "v0.1.0")
 COMMIT  = os.getenv("GW_COMMIT",  "local")
 
-# ---- JSON logger (stdlib) ----
 logger = logging.getLogger("planner")
 logger.setLevel(logging.INFO)
 _handler = logging.StreamHandler()
@@ -43,7 +42,8 @@ def _before():
 def _after(resp):
     rid = getattr(g, "request_id", "")
     resp.headers["X-Request-ID"] = rid
-    latency_ms = int((time.time() - g.get("start", time.time())) * 1000)
+    start_ts = getattr(g, "start", time.time())
+    latency_ms = int((time.time() - start_ts) * 1000)
     jlog(
         "http",
         method=request.method,

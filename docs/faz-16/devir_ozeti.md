@@ -49,3 +49,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-6: /health → version/commit eklendi (GW_VERSION/GW_COMMIT varsayılanlarla)
 
 - Kapı-6 teşhis: ps/logs/port/inspect çalıştırıldı
+
+- Kapı-7: flask.g .get() → getattr() fix; health ve akış geçti

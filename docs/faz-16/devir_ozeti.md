@@ -63,3 +63,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-11: UI auto-poll/TTL/hata yüzeyi eklendi
 
 - Kapı-12: planner Dockerfile ARG→ENV; /health version/commit kalıcı
+
+- Kapı-12 fix: waitress-serve ile bağlantı kapanması çözüldü

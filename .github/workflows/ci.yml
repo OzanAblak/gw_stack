@@ -55,9 +55,25 @@ jobs:
         run: curl -fsS http://localhost:18088/
 
       - name: API smoke via gateway
-      - name: E2E smoke via script
-        shell: pwsh
-        run: ./scripts/e2e_smoke.ps1 -Base "http://localhost:18088" -PollSeconds 5 -DeadlineSeconds 180
+           - name: E2E smoke via bash
+        run: |
+          set -euo pipefail
+          PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile | jq -r .planId)
+          test ${#PLANID} -eq 36
+          # 200 bekle
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/$PLANID")
+          test "$code" = "200"
+          # TTL→410
+          deadline=$((SECONDS+240))
+          while [ $SECONDS -lt $deadline ]; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/$PLANID")
+            [ "$code" = "410" ] && exit 0
+            sleep 5
+          done
+          echo "E2E timeout"
+          docker compose logs --no-color
+          exit 1
+
 
         run: |
           sudo apt-get update -y && sudo apt-get install -y jq

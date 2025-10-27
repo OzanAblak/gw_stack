@@ -1,95 +1,101 @@
-name: CI
+﻿name: ci
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "**" ]
+    tags:     [ "v*", "V*" ]
   pull_request:
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-and-smoke:
+  build-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
 
       - name: Build images
         run: docker compose build
 
-      - name: Start stack
+      - name: Up services
         run: docker compose up -d
 
-      - name: Wait for services
+      - name: Wait health (planner+gateway)
         run: |
-          set -e
-          deadline=$((SECONDS+240))
-          echo "Waiting for gateway..."
-          until curl -fsS http://localhost:18088/health; do
-            if [ $SECONDS -ge $deadline ]; then
-              echo "gateway health timeout"
-              docker compose ps || true
-              docker compose logs --no-color gateway || true
-              exit 1
-            fi
-            sleep 3
+          for i in {1..60}; do
+            p=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:19090/health || true)
+            g=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18088/health || true)
+            if [ "$p" = "200" ] && [ "$g" = "200" ]; then echo "OK"; exit 0; fi
+            sleep 2
           done
-          echo "Waiting for planner..."
-          deadline=$((SECONDS+240))
-          until curl -fsS http://localhost:19090/health; do
-            if [ $SECONDS -ge $deadline ]; then
-              echo "planner health timeout"
-              docker compose ps || true
-              docker compose logs --no-color planner || true
-              exit 1
-            fi
-            sleep 3
-          done
-
-      - name: UI smoke
-        run: curl -fsS http://localhost:18088/
-
-      - name: Install jq
-        run: sudo apt-get update -y && sudo apt-get install -y jq
-
-      - name: Compile planId
-        run: |
-          set -e
-          PLANID=$(curl -fsS -X POST http://localhost:18088/v1/plan/compile | jq -r .planId)
-          test ${#PLANID} -eq 36
-          echo "PLANID=$PLANID" >> $GITHUB_ENV
-
-      - name: API smoke via gateway
-        run: |
-          set -euo pipefail
-          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/${PLANID}")
-          test "$code" = "200"
-
-      - name: E2E TTL→410
-        run: |
-          set -euo pipefail
-          deadline=$((SECONDS+240))
-          while [ $SECONDS -lt $deadline ]; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18088/v1/plan/${PLANID}")
-            [ "$code" = "410" ] && exit 0
-            sleep 5
-          done
-          echo "E2E timeout waiting for 410"
-          docker compose ps || true
-          docker compose logs --no-color || true
+          echo "Health timeout"
+          docker compose logs --tail=200
           exit 1
 
-      - name: Show logs on failure
-        if: ${{ failure() }}
-        run: docker compose logs --no-color
+      - name: E2E smoke (200→410)
+        shell: pwsh
+        run: ./scripts/e2e_smoke.ps1 -Base "http://localhost:18088" -PollSeconds 5 -DeadlineSeconds 180
 
       - name: Teardown
         if: always()
         run: docker compose down -v
+
+  publish:
+    needs: build-test
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PLANNER_IMAGE: ghcr.io/${{ github.repository_owner }}/gw-stack-planner
+      GATEWAY_IMAGE: ghcr.io/${{ github.repository_owner }}/gw-stack-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Meta (planner)
+        id: meta_planner
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.PLANNER_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+            type=sha
+
+      - name: Meta (gateway)
+        id: meta_gateway
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GATEWAY_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+            type=sha
+
+      - name: Build+Push planner
+        uses: docker/build-push-action@v6
+        with:
+          context: ./planner
+          push: true
+          tags: ${{ steps.meta_planner.outputs.tags }}
+          labels: ${{ steps.meta_planner.outputs.labels }}
+          build-args: |
+            GW_VERSION=${{ github.ref_name }}
+            GW_COMMIT=${{ github.sha }}
+
+      - name: Build+Push gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: ./gateway
+          push: true
+          tags: ${{ steps.meta_gateway.outputs.tags }}
+          labels: ${{ steps.meta_gateway.outputs.labels }}
+          build-args: |
+            GW_VERSION=${{ github.ref_name }}
+            GW_COMMIT=${{ github.sha }}

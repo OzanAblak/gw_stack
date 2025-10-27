@@ -65,3 +65,6 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-12: planner Dockerfile ARG→ENV; /health version/commit kalıcı
 
 - Kapı-12 fix: waitress-serve ile bağlantı kapanması çözüldü
+
+- Hızlı doğrulama: health 200/200, compile→get PASS
+- EOL uyarıları göz ardı edildi; not_found TTL davranışı olarak sınıflandı

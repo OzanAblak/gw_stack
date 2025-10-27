@@ -51,3 +51,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-6 teşhis: ps/logs/port/inspect çalıştırıldı
 
 - Kapı-7: flask.g .get() → getattr() fix; health ve akış geçti
+
+- Teşhis paketi çalıştırıldı: ps/nginx-test/log/health/flow

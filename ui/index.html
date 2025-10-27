@@ -1,82 +1,162 @@
 ﻿<!doctype html>
 <html lang="tr">
+<head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GW Stack — Dashboard</title>
+<title>GW Stack Dashboard</title>
 <style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 16px}
-  h1{font-size:20px}
-  button{padding:8px 12px;margin-right:8px}
-  code,pre{background:#111;color:#eee;padding:8px;border-radius:6px;display:block;white-space:pre-wrap}
-  .row{margin:12px 0}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eee}
+  :root { --bg:#0f1115; --fg:#e6e6e6; --muted:#999; --ok:#2ecc71; --warn:#f1c40f; --err:#e74c3c; --card:#151925; --chip:#1e2433; }
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:900px;margin:32px auto;padding:0 16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .card{background:var(--card);border-radius:14px;padding:16px;margin:10px 0;box-shadow:0 1px 0 #0002}
+  .btn{background:#2b6cff;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;background:var(--chip);color:var(--muted)}
+  .ok{background:color-mix(in oklab, var(--ok) 25%, #000); color:#b9f7cf}
+  .warn{background:color-mix(in oklab, var(--warn) 25%, #000); color:#fff1c2}
+  .err{background:color-mix(in oklab, var(--err) 25%, #000); color:#ffd0c8}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px}
+  pre{white-space:pre-wrap;background:#0b0e16;border-radius:10px;padding:12px;max-height:280px;overflow:auto}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:8px}
+  .kv b{color:#cbd5e1}
 </style>
-<h1>GW Stack — UI</h1>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GW Stack</h1>
 
-<div class="row">
-  <span class="pill" id="health">HEALTH: n/a</span>
-</div>
+    <div class="row">
+      <button id="btnCompile" class="btn">Compile Plan</button>
+      <button id="btnReset" class="btn" style="background:#5865f2">Reset</button>
+      <button id="btnHealth" class="btn" style="background:#1f9e63">Health</button>
+      <span id="status" class="badge">IDLE</span>
+      <span id="ttl" class="badge">TTL: -</span>
+      <span id="version" class="badge mono">v?-?</span>
+    </div>
 
-<div class="row">
-  <button id="btnCompile">Plan compile</button>
-  <button id="btnCheck">Durum kontrol</button>
-  <label><input type="checkbox" id="autoPoll"> Otomatik kontrol (5s)</label>
-</div>
+    <div class="card">
+      <div class="kv mono">
+        <b>planId</b><span id="pid">-</span>
+        <b>last</b><span id="last">-</span>
+        <b>message</b><span id="msg">-</span>
+      </div>
+    </div>
 
-<div class="row">
-  <div>PLANID: <code id="planId">—</code></div>
-</div>
-
-<pre id="log" aria-live="polite"></pre>
+    <div class="card">
+      <b>Log</b>
+      <pre id="log" class="mono"></pre>
+    </div>
+  </div>
 
 <script>
-const $ = s => document.querySelector(s);
-const log = (...a) => { const t = new Date().toISOString().replace('T',' ').slice(0,19); $('#log').textContent += `[${t}] ` + a.join(' ') + '\n'; }
+const el = (id)=>document.getElementById(id);
+const S = { IDLE:"IDLE", ACTIVE:"ACTIVE", GONE:"GONE", ERR:"ERR" };
 let planId = null, timer = null;
 
-async function health() {
-  try {
-    const gw = await fetch('/health');
-    const txt = await gw.text();
-    $('#health').textContent = `HEALTH: ${gw.status} ${txt}`;
-  } catch(e) {
-    $('#health').textContent = 'HEALTH: ERR';
+function setStatus(s){
+  const k = el('status');
+  k.textContent = s;
+  k.classList.remove('ok','warn','err');
+  if(s===S.ACTIVE) k.classList.add('ok');
+  else if(s===S.GONE) k.classList.add('warn');
+  else if(s===S.ERR) k.classList.add('err');
+}
+
+function logln(t){ const p = el('log'); p.textContent += t + "\n"; p.scrollTop = p.scrollHeight; }
+function fmtTTL(ttl){ if(typeof ttl!=='number') return '-'; const m=Math.floor(ttl/60), s=ttl%60; return `${m}:${s.toString().padStart(2,'0')}`; }
+
+async function fetchJson(path, opts){
+  const r = await fetch(path, opts);
+  const text = await r.text();
+  let json=null; try { json = text ? JSON.parse(text) : null; } catch { /* no-op */ }
+  return { status:r.status, headers:r.headers, text, json };
+}
+
+async function doHealth(){
+  try{
+    const h = await fetchJson('/health');
+    if(h.status===200 && h.json){
+      el('version').textContent = `${h.json.version || 'v?'} @ ${h.json.commit || '-'}`;
+      setStatus(S.IDLE);
+      el('msg').textContent = 'health: ok';
+      logln(`[health] ${h.text}`);
+    } else {
+      setStatus(S.ERR);
+      el('msg').textContent = `health: HTTP ${h.status}`;
+      logln(`[health] ERR ${h.status} ${h.text}`);
+    }
+  }catch(e){
+    setStatus(S.ERR); el('msg').textContent = 'health: network error';
+    logln(`[health] NETERR ${e}`);
   }
 }
 
-$('#btnCompile').onclick = async () => {
-  try {
-    const r = await fetch('/v1/plan/compile', {method:'POST'});
-    const j = await r.json();
-    planId = j.planId;
-    $('#planId').textContent = planId || '—';
-    log('compile → planId =', planId);
-  } catch(e) { log('compile ERR', e); }
-};
-
-async function checkOnce() {
-  if (!planId) { log('planId yok'); return; }
-  try {
-    const r = await fetch(`/v1/plan/${planId}`);
-    const body = await r.text();
-    log(`GET /v1/plan/${planId} → ${r.status}`, body);
-  } catch(e) { log('GET ERR', e); }
+async function compile(){
+  clearInterval(timer); el('ttl').textContent = 'TTL: -';
+  try{
+    const r = await fetchJson('/v1/plan/compile', {method:'POST'});
+    if(r.status===200 && r.json && r.json.planId){
+      planId = r.json.planId;
+      el('pid').textContent = planId;
+      setStatus(S.ACTIVE);
+      el('msg').textContent = 'compile: ok';
+      logln(`[compile] ${r.text}`);
+      poll();
+    } else {
+      setStatus(S.ERR);
+      el('msg').textContent = `compile: HTTP ${r.status}`;
+      logln(`[compile] ERR ${r.status} ${r.text}`);
+    }
+  }catch(e){
+    setStatus(S.ERR); el('msg').textContent = 'compile: network error';
+    logln(`[compile] NETERR ${e}`);
+  }
 }
 
-$('#btnCheck').onclick = checkOnce;
+async function poll(){
+  clearInterval(timer);
+  if(!planId){ el('msg').textContent='poll: no planId'; return; }
+  const tick = async ()=>{
+    try{
+      const r = await fetchJson(`/v1/plan/${planId}`);
+      if(r.status===200 && r.json){
+        setStatus(S.ACTIVE);
+        el('ttl').textContent = 'TTL: ' + fmtTTL(r.json.ttl);
+        el('last').textContent = new Date().toLocaleTimeString();
+      } else if(r.status===410){
+        setStatus(S.GONE);
+        el('ttl').textContent = 'TTL: 0:00';
+        el('last').textContent = new Date().toLocaleTimeString();
+        clearInterval(timer);
+      } else {
+        setStatus(S.ERR);
+        el('msg').textContent = `get: HTTP ${r.status}`;
+        logln(`[get] ERR ${r.status} ${r.text}`);
+      }
+    }catch(e){
+      setStatus(S.ERR); el('msg').textContent = 'get: network error';
+      logln(`[get] NETERR ${e}`);
+    }
+  };
+  await tick();
+  timer = setInterval(tick, 2000);
+}
 
-$('#autoPoll').onchange = (e) => {
-  if (e.target.checked) {
-    if (timer) clearInterval(timer);
-    timer = setInterval(checkOnce, 5000);
-    log('Auto-poll = ON');
-  } else {
-    if (timer) clearInterval(timer);
-    timer = null;
-    log('Auto-poll = OFF');
-  }
-};
+function resetUI(){
+  clearInterval(timer); planId=null;
+  setStatus(S.IDLE);
+  el('pid').textContent='-';
+  el('ttl').textContent='TTL: -';
+  el('last').textContent='-';
+  el('msg').textContent='-';
+}
 
-health();
+el('btnCompile').addEventListener('click', compile);
+el('btnReset').addEventListener('click', resetUI);
+el('btnHealth').addEventListener('click', doHealth);
+
+doHealth();
 </script>
+</body>
 </html>

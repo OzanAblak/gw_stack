@@ -1,0 +1,16 @@
+services:
+  planner:
+    build: ./planner
+    ports:
+      - "19090:9090"
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "18088:80"
+    depends_on:
+      - planner
+    restart: unless-stopped

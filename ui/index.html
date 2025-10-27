@@ -1,0 +1,82 @@
+﻿<!doctype html>
+<html lang="tr">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GW Stack — Dashboard</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 16px}
+  h1{font-size:20px}
+  button{padding:8px 12px;margin-right:8px}
+  code,pre{background:#111;color:#eee;padding:8px;border-radius:6px;display:block;white-space:pre-wrap}
+  .row{margin:12px 0}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eee}
+</style>
+<h1>GW Stack — UI</h1>
+
+<div class="row">
+  <span class="pill" id="health">HEALTH: n/a</span>
+</div>
+
+<div class="row">
+  <button id="btnCompile">Plan compile</button>
+  <button id="btnCheck">Durum kontrol</button>
+  <label><input type="checkbox" id="autoPoll"> Otomatik kontrol (5s)</label>
+</div>
+
+<div class="row">
+  <div>PLANID: <code id="planId">—</code></div>
+</div>
+
+<pre id="log" aria-live="polite"></pre>
+
+<script>
+const $ = s => document.querySelector(s);
+const log = (...a) => { const t = new Date().toISOString().replace('T',' ').slice(0,19); $('#log').textContent += `[${t}] ` + a.join(' ') + '\n'; }
+let planId = null, timer = null;
+
+async function health() {
+  try {
+    const gw = await fetch('/health');
+    const txt = await gw.text();
+    $('#health').textContent = `HEALTH: ${gw.status} ${txt}`;
+  } catch(e) {
+    $('#health').textContent = 'HEALTH: ERR';
+  }
+}
+
+$('#btnCompile').onclick = async () => {
+  try {
+    const r = await fetch('/v1/plan/compile', {method:'POST'});
+    const j = await r.json();
+    planId = j.planId;
+    $('#planId').textContent = planId || '—';
+    log('compile → planId =', planId);
+  } catch(e) { log('compile ERR', e); }
+};
+
+async function checkOnce() {
+  if (!planId) { log('planId yok'); return; }
+  try {
+    const r = await fetch(`/v1/plan/${planId}`);
+    const body = await r.text();
+    log(`GET /v1/plan/${planId} → ${r.status}`, body);
+  } catch(e) { log('GET ERR', e); }
+}
+
+$('#btnCheck').onclick = checkOnce;
+
+$('#autoPoll').onchange = (e) => {
+  if (e.target.checked) {
+    if (timer) clearInterval(timer);
+    timer = setInterval(checkOnce, 5000);
+    log('Auto-poll = ON');
+  } else {
+    if (timer) clearInterval(timer);
+    timer = null;
+    log('Auto-poll = OFF');
+  }
+};
+
+health();
+</script>
+</html>

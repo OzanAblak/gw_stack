@@ -1,24 +1,25 @@
+﻿version: "3.9"
 services:
   planner:
     build: ./planner
+    image: gw_stack-planner
+    ports:
+      - "19090:9090"
     environment:
       GW_TTL_SECONDS: "70"
+      GW_VERSION: "${GW_VERSION:-v0.1.0}"
+      GW_COMMIT: "${GW_COMMIT:-local}"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request as u; print(u.urlopen('http://localhost:9090/health').read().decode())"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9090/health', timeout=2).getcode()==200 else 1)\""]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 5s
-    ports:
-      - "19090:9090"
-    restart: unless-stopped
 
   gateway:
-    build:
-      context: .
-      dockerfile: gateway/Dockerfile
+    build: ./gateway
+    image: gw_stack-gateway
     ports:
       - "18088:80"
     depends_on:
       - planner
-    restart: unless-stopped

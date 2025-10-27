@@ -43,3 +43,5 @@
 PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 
 - Kapı-4: gateway reload + rate-limit test; 429 sayısı=0
+
+- Kapı-5: .gitattributes ile satır sonları standardize edildi (LF; ps1=CRLF)

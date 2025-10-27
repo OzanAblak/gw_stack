@@ -47,3 +47,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-5: .gitattributes ile satır sonları standardize edildi (LF; ps1=CRLF)
 
 - Kapı-6: /health → version/commit eklendi (GW_VERSION/GW_COMMIT varsayılanlarla)
+
+- Kapı-6 teşhis: ps/logs/port/inspect çalıştırıldı

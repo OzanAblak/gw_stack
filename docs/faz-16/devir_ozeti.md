@@ -59,3 +59,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-8: after_request try/except ve 3930f087-0484-4ad0-a66b-c05bc724cfe5 kullanımı; bağlantı kapanması giderildi
 
 - Kapı-9: compose ile GW_VERSION/GW_COMMIT aktarıldı; health ve akış doğrulandı
+
+- Kapı-11: UI auto-poll/TTL/hata yüzeyi eklendi

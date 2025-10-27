@@ -1,0 +1,38 @@
+# VCS
+.git
+
+# CI klasörü build context’e gerekmez
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+
+# OS / editör
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+
+# Log ve coverage
+*.log
+logs/
+coverage/
+
+# Yerel veri
+plans/
+backup_plans_*/
+
+# Paketler
+*.tar
+*.zip

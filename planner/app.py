@@ -1,38 +1,93 @@
-from flask import Flask, jsonify, request
-from datetime import datetime, timedelta, timezone
-import uuid, os
+﻿import os, time, uuid, json, logging
+from datetime import datetime, timezone
+from flask import Flask, request, g, jsonify
+
+TTL_SECONDS = int(os.getenv("GW_TTL_SECONDS", "70"))
+
+# ---- JSON logger (stdlib) ----
+logger = logging.getLogger("planner")
+logger.setLevel(logging.INFO)
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter("%(message)s"))
+logger.handlers = [_handler]
+logger.propagate = False
+
+def _now_ts() -> int:
+    return int(time.time())
+
+def _iso_utc() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def jlog(event: str, **fields):
+    base = {
+        "ts": _iso_utc(),
+        "level": "INFO",
+        "event": event,
+        "request_id": getattr(g, "request_id", None),
+    }
+    base.update(fields)
+    logger.info(json.dumps(base, ensure_ascii=False))
 
 app = Flask(__name__)
+_store = {}  # id -> {"ts": epoch}
 
-TTL_SECONDS = int(os.getenv("GW_TTL_SECONDS", "70"))  # GW TTL
-plans = {}  # id -> {"created_at": datetime, "tombstone": bool}
+@app.before_request
+def _before():
+    rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    g.request_id = rid
+    g.start = time.time()
 
+@app.after_request
+def _after(resp):
+    rid = getattr(g, "request_id", "")
+    resp.headers["X-Request-ID"] = rid
+    latency_ms = int((time.time() - g.get("start", time.time())) * 1000)
+    jlog(
+        "http",
+        method=request.method,
+        path=request.path,
+        status=resp.status_code,
+        latency_ms=latency_ms,
+        remote_addr=request.headers.get("X-Forwarded-For", request.remote_addr),
+        ua=request.headers.get("User-Agent", "-"),
+    )
+    return resp
 
 @app.get("/health")
 def health():
-    return ("ok", 200, {"Content-Type": "text/plain"})
+    return jsonify({"ok": "ok"})
 
 @app.post("/v1/plan/compile")
 def compile_plan():
-    plan_id = str(uuid.uuid4())  # 36 hane
-    plans[plan_id] = {"created_at": datetime.now(timezone.utc), "tombstone": False}
-    return jsonify({"planId": plan_id})
+    pid = str(uuid.uuid4())  # 36 hane
+    _store[pid] = {"ts": _now_ts()}
+    jlog("compile", plan_id=pid)
+    return jsonify({"planId": pid})
 
-@app.get("/v1/plan/<plan_id>")
-def get_plan(plan_id):
-    meta = plans.get(plan_id)
-    if not meta:
+def _ttl(pid: str):
+    age = _now_ts() - _store[pid]["ts"]
+    return max(0, TTL_SECONDS - age), age
+
+@app.get("/v1/plan/<pid>")
+def get_plan(pid):
+    if pid not in _store:
+        jlog("get_plan_not_found", plan_id=pid)
         return jsonify({"error": "not_found"}), 404
+    ttl, age = _ttl(pid)
+    if ttl <= 0:
+        jlog("get_plan_gone", plan_id=pid, age=age)
+        return jsonify({"error": "gone", "age": age}), 410
+    jlog("get_plan_ok", plan_id=pid, age=age, ttl=ttl)
+    return jsonify({"id": pid, "age": age, "ttl": ttl})
 
-    age = (datetime.now(timezone.utc) - meta["created_at"]).total_seconds()
-    if age <= TTL_SECONDS and not meta["tombstone"]:
-        remaining = max(0, int(TTL_SECONDS - age))
-        return jsonify({"planId": plan_id, "status": "active", "ttlRemaining": remaining}), 200
-
-    # TTL geçti -> tombstone
-    meta["tombstone"] = True
-    return jsonify({"planId": plan_id, "status": "tombstone"}), 410
+@app.get("/v1/plan/<pid>/debug")
+def dbg(pid):
+    if pid not in _store:
+        jlog("debug_not_found", plan_id=pid)
+        return jsonify({"error": "not_found"}), 404
+    ttl, age = _ttl(pid)
+    jlog("debug", plan_id=pid, age=age, ttl=ttl, tombstone=(ttl == 0))
+    return jsonify({"id": pid, "age": age, "ttl": ttl, "tombstone": ttl == 0})
 
 if __name__ == "__main__":
-    # Waitress prod’da Dockerfile ile çağrılacak; dev için Flask built-in yeterli
     app.run(host="0.0.0.0", port=9090)

@@ -53,3 +53,5 @@ PORT=... | HEALTH=... | CI=... | E2E=... | NEXT=...
 - Kapı-7: flask.g .get() → getattr() fix; health ve akış geçti
 
 - Teşhis paketi çalıştırıldı: ps/nginx-test/log/health/flow
+
+- Kapı-8: global error handler eklendi; bağlantı kapanmaları 500 JSON'a dönüştürüldü

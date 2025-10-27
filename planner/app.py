@@ -1,4 +1,4 @@
-﻿import os, time, uuid, json, logging
+﻿import os, time, uuid, json, logging, traceback
 from datetime import datetime, timezone
 from flask import Flask, request, g, jsonify
 
@@ -54,6 +54,13 @@ def _after(resp):
         ua=request.headers.get("User-Agent", "-"),
     )
     return resp
+
+# ---- Global hata yakalayıcı ----
+@app.errorhandler(Exception)
+def _on_error(e):
+    jlog("unhandled_exception", error=str(e), exc_type=type(e).__name__, tb=traceback.format_exc())
+    resp = {"error":"internal","type":type(e).__name__}
+    return jsonify(resp), 500
 
 @app.get("/health")
 def health():

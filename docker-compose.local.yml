@@ -1,0 +1,12 @@
+﻿version: "3.8"
+services:
+  planner:
+    build:
+      context: ./planner
+    image: local/planner:dev
+    pull_policy: never
+  gwfwd:
+    build:
+      context: ./gwfwd
+    image: local/gwfwd:dev
+    pull_policy: never

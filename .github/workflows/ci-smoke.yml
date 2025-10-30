@@ -1,0 +1,22 @@
+name: CI Smoke
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  smoke-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v3
+      - name: Docker info
+        shell: pwsh
+        run: docker version
+      - name: CI Smoke (PowerShell)
+        shell: pwsh
+        run: .\scripts\ci_smoke_gwfwd.ps1
+      - name: CI Smoke (CMD)
+        shell: cmd
+        run: .\scripts\ci_smoke_gwfwd.cmd

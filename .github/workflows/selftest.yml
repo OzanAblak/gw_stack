@@ -5,4 +5,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "HELLO"
-# ci-kick
+      - name: Summarize
+        run: echo "HELLO" >> "$GITHUB_STEP_SUMMARY"

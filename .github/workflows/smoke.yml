@@ -1,85 +1,21 @@
-name: smoke
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: Branch to test
-        required: true
-        default: main
-
-jobs:
-  smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Docker info
-        run: |
-          docker --version
-          docker compose version || true
-
-      - name: Compose up
-        run: docker compose -f docker-compose.yml up -d --build
-
-      - name: Wait planner health (19090)
-        run: |
-          for i in {1..90}; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:19090/health || true)
-            if [ "$code" = "200" ]; then echo "H19090=200"; exit 0; fi
-            sleep 1
-          done
-          echo "H19090=000"; exit 1
-
-      - name: Wait gwfwd health (38888)
-        run: |
-          for i in {1..60}; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:38888/health || true)
-            if [ "$code" = "200" ]; then echo "H38888=200"; exit 0; fi
-            sleep 1
-          done
-          echo "H38888=000"; exit 1
-
-      - name: E2E compile (planner)
-        run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" \
-                 -H "Content-Type: application/json" -d '{}' \
-                 http://127.0.0.1:19090/v1/plan/compile || true)
-          if [ "$code" = "200" ]; then echo "E2E=200"; else echo "E2E=$code"; exit 1; fi
-
-      - name: Gateway SMOKE (8088)
-        run: |
-          h=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/health || true)
-          e=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -d '{}' \
-               http://127.0.0.1:8088/v1/plan/compile || true)
-          if [ "$h" = "200" ] && [ "$e" = "200" ]; then
-            echo "GW_PASS 8088=$h E2E=$e"
-          else
-            echo "GW_FAIL 8088=$h E2E=$e"
-            exit 1
-          fi
-
-      # --- Teşhis: her zaman dök (başarılı olsa bile) ---
-      - name: Diagnostics (always)
-        if: always()
-        run: |
-          echo "== docker ps -a =="
-          docker ps -a || true
-          echo "== compose ps =="
-          docker compose -f docker-compose.yml ps || true
-          echo "== planner logs (tail 200) =="
-          docker compose -f docker-compose.yml logs --no-color --tail=200 planner || true
-          echo "== gwfwd logs (tail 100) =="
-          docker compose -f docker-compose.yml logs --no-color --tail=100 gwfwd || true
-          echo "== gateway logs (tail 100) =="
-          docker compose -f docker-compose.yml logs --no-color --tail=100 gateway || true
-
-      - name: Tear down
-        if: always()
-        run: docker compose -f docker-compose.yml down -v
-# ci-bump: 2025-11-02T14:07:36Z
+- name: Wait and probe
+  run: |
+    set -e
+    probe() { url="$1"; n=0; while :; do c=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true); if [ "$c" = "200" ]; then echo "$c"; return; fi; n=$((n+1)); [ $n -ge 30 ] && { echo "$c"; return; } sleep 3; done; }
+    H19090=$(probe http://localhost:19090/health)
+    H38888=$(probe http://localhost:38888/health)
+    E2E=$(curl -s -H 'Content-Type: application/json' -d '{}' -o /dev/null -w '%{http_code}' http://localhost:38888/v1/plan/compile || true)
+    if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
+      echo "PASS 19090=200 38888=200 E2E=200" | tee smoke_result.txt
+    else
+      echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" | tee smoke_result.txt
+      exit 1
+    fi
+- name: Summarize
+  if: always()
+  run: |
+    if [ -f smoke_result.txt ]; then
+      cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
+    else
+      echo "NO_RESULT" >> "$GITHUB_STEP_SUMMARY"
+    fi

@@ -1,0 +1,37 @@
+name: smoke
+
+# Manuel çalıştırma; otomatik tetiklemeyelim (şimdilik).
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Yerel script varsa çalıştır, hata olsa bile job kırılmasın (best-effort)
+      - name: Local SMOKE (best-effort)
+        shell: pwsh
+        run: |
+          if (Test-Path 'scripts/ci_smoke_local.ps1') {
+            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci_smoke_local.ps1 || $true
+          } else {
+            Write-Host 'scripts/ci_smoke_local.ps1 not found'
+          }
+
+      - name: Gateway SMOKE (best-effort)
+        shell: pwsh
+        run: |
+          if (Test-Path 'scripts/docker/ci_smoke_gateway.ps1') {
+            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docker/ci_smoke_gateway.ps1 || $true
+          } else {
+            Write-Host 'scripts/docker/ci_smoke_gateway.ps1 not found'
+          }
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          Write-Host 'SMOKE workflow completed (manual, best-effort).'

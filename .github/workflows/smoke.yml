@@ -1,37 +1,68 @@
 name: smoke
 
-# Manuel çalıştırma; otomatik tetiklemeyelim (şimdilik).
 on:
   workflow_dispatch:
+  push:
 
 jobs:
   smoke:
-    runs-on: windows-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Yerel script varsa çalıştır, hata olsa bile job kırılmasın (best-effort)
-      - name: Local SMOKE (best-effort)
-        shell: pwsh
+      - name: Docker info
         run: |
-          if (Test-Path 'scripts/ci_smoke_local.ps1') {
-            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci_smoke_local.ps1 || $true
-          } else {
-            Write-Host 'scripts/ci_smoke_local.ps1 not found'
-          }
+          docker --version
+          docker compose version || true
 
-      - name: Gateway SMOKE (best-effort)
-        shell: pwsh
-        run: |
-          if (Test-Path 'scripts/docker/ci_smoke_gateway.ps1') {
-            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docker/ci_smoke_gateway.ps1 || $true
-          } else {
-            Write-Host 'scripts/docker/ci_smoke_gateway.ps1 not found'
-          }
+      - name: Compose up
+        run: docker compose -f docker-compose.yml up -d --build
 
-      - name: Summary
-        shell: pwsh
+      - name: Wait planner health (19090)
         run: |
-          Write-Host 'SMOKE workflow completed (manual, best-effort).'
+          for i in {1..60}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:19090/health || true)
+            if [ "$code" = "200" ]; then echo "H19090=200"; exit 0; fi
+            sleep 1
+          done
+          echo "H19090=000"
+          docker ps || true
+          cid=$(docker ps -q --filter label=com.docker.compose.service=planner)
+          [ -n "$cid" ] && docker logs --tail 200 "$cid" || true
+          exit 1
+
+      - name: Wait gwfwd health (38888)
+        run: |
+          for i in {1..30}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:38888/health || true)
+            if [ "$code" = "200" ]; then echo "H38888=200"; exit 0; fi
+            sleep 1
+          done
+          echo "H38888=000"
+          exit 1
+
+      - name: E2E compile (planner)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+                 -H "Content-Type: application/json" -d '{}' \
+                 http://127.0.0.1:19090/v1/plan/compile || true)
+          if [ "$code" = "200" ]; then echo "E2E=200"; else echo "E2E=$code"; exit 1; fi
+
+      - name: Gateway SMOKE (8088)
+        run: |
+          h=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/health || true)
+          e=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -d '{}' \
+               http://127.0.0.1:8088/v1/plan/compile || true)
+          if [ "$h" = "200" ] && [ "$e" = "200" ]; then
+            echo "GW_PASS 8088=$h E2E=$e"
+          else
+            echo "GW_FAIL 8088=$h E2E=$e"
+            exit 1
+          fi
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.yml down -v

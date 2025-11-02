@@ -2,7 +2,44 @@ name: smoke-lite
 on:
   workflow_dispatch:
 jobs:
-  t:
+  smoke:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "PASS 19090=200 38888=200 E2E=200" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compose up
+        run: docker compose -f docker-compose.yml up -d --build
+      - name: Wait and probe
+        run: |
+          set -e
+          probe() { url="$1"; n=0; while :; do c=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true); if [ "$c" = "200" ]; then echo "$c"; return; fi; n=$((n+1)); [ $n -ge 30 ] && { echo "$c"; return; } sleep 3; done; }
+          H19090=$(probe http://localhost:19090/health)
+          H38888=$(probe http://localhost:38888/health)
+          E2E=$(curl -s -H 'Content-Type: application/json' -d '{}' -o /dev/null -w '%{http_code}' http://localhost:38888/v1/plan/compile || true)
+          if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
+            echo "PASS 19090=200 38888=200 E2E=200" | tee smoke_result.txt
+          else
+            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" | tee smoke_result.txt
+            exit 1
+          fi
+      - name: Summarize
+        if: always()
+        run: |
+          if [ -f smoke_result.txt ]; then
+            cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "NO_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Compose ps
+        if: always()
+        run: docker compose -f docker-compose.yml ps
+      - name: Upload logs
+        if: always()
+        run: docker compose -f docker-compose.yml logs --no-color > ci_logs.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-logs
+          path: ci_logs.txt
+# ci-bump:

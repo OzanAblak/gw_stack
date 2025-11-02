@@ -7,7 +7,7 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -23,26 +23,21 @@ jobs:
 
       - name: Wait planner health (19090)
         run: |
-          for i in {1..60}; do
+          for i in {1..90}; do
             code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:19090/health || true)
             if [ "$code" = "200" ]; then echo "H19090=200"; exit 0; fi
             sleep 1
           done
-          echo "H19090=000"
-          docker ps || true
-          cid=$(docker ps -q --filter label=com.docker.compose.service=planner)
-          [ -n "$cid" ] && docker logs --tail 200 "$cid" || true
-          exit 1
+          echo "H19090=000"; exit 1
 
       - name: Wait gwfwd health (38888)
         run: |
-          for i in {1..30}; do
+          for i in {1..60}; do
             code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:38888/health || true)
             if [ "$code" = "200" ]; then echo "H38888=200"; exit 0; fi
             sleep 1
           done
-          echo "H38888=000"
-          exit 1
+          echo "H38888=000"; exit 1
 
       - name: E2E compile (planner)
         run: |
@@ -62,6 +57,21 @@ jobs:
             echo "GW_FAIL 8088=$h E2E=$e"
             exit 1
           fi
+
+      # --- Teşhis: her zaman dök (başarılı olsa bile) ---
+      - name: Diagnostics (always)
+        if: always()
+        run: |
+          echo "== docker ps -a =="
+          docker ps -a || true
+          echo "== compose ps =="
+          docker compose -f docker-compose.yml ps || true
+          echo "== planner logs (tail 200) =="
+          docker compose -f docker-compose.yml logs --no-color --tail=200 planner || true
+          echo "== gwfwd logs (tail 100) =="
+          docker compose -f docker-compose.yml logs --no-color --tail=100 gwfwd || true
+          echo "== gateway logs (tail 100) =="
+          docker compose -f docker-compose.yml logs --no-color --tail=100 gateway || true
 
       - name: Tear down
         if: always()

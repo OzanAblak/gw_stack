@@ -1,25 +1,28 @@
-﻿version: "3.9"
+# C:\Users\DELL\Desktop\gw_stack\docker-compose.yml
 services:
   planner:
-    build: ./planner
-    image: gw_stack-planner
+    build:
+      context: ./planner
+      dockerfile: Dockerfile
     ports:
       - "19090:9090"
-    environment:
-      GW_TTL_SECONDS: "70"
-      GW_VERSION: "${GW_VERSION:-v0.1.0}"
-      GW_COMMIT: "${GW_COMMIT:-local}"
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9090/health', timeout=2).getcode()==200 else 1)\""]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
+    restart: unless-stopped
 
-  gateway:
-    build: ./gateway
-    image: gw_stack-gateway
-    ports:
-      - "18088:80"
+  gwfwd:
+    image: alpine/socat
+    command: ["-T","1","TCP-LISTEN:38888,fork,reuseaddr","TCP:planner:9090"]
     depends_on:
       - planner
+    ports:
+      - "38888:38888"
+    restart: unless-stopped
+
+  gateway:
+    image: nginx:1.25-alpine
+    depends_on:
+      - planner
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./infra/gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped

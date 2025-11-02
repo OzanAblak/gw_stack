@@ -1,8 +1,14 @@
 name: smoke
 
 on:
-  workflow_dispatch:
   push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to test
+        required: true
+        default: main
 
 jobs:
   smoke:

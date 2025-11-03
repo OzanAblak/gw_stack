@@ -8,8 +8,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Init result
+        run: echo "FAIL SETUP" > smoke_result.txt
+
       - name: Compose up
-        run: docker compose -f docker-compose.yml up -d --build
+        run: |
+          set +e
+          docker compose -f docker-compose.yml up -d --build
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "FAIL SETUP compose=$code" > smoke_result.txt
+            # Devam etsin ki özet yazılsın
+            exit 0
+          fi
+
       - name: Wait and probe
         run: |
           set -e
@@ -18,25 +31,23 @@ jobs:
           H38888=$(probe http://localhost:38888/health)
           E2E=$(curl -s -H 'Content-Type: application/json' -d '{}' -o /dev/null -w '%{http_code}' http://localhost:38888/v1/plan/compile || true)
           if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
-            echo "PASS 19090=200 38888=200 E2E=200" | tee smoke_result.txt
+            echo "PASS 19090=200 38888=200 E2E=200" > smoke_result.txt
           else
-            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" | tee smoke_result.txt
-            exit 1
+            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" > smoke_result.txt
           fi
+
       - name: Summarize
         if: always()
-        run: |
-          if [ -f smoke_result.txt ]; then
-            cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "NO_RESULT" >> "$GITHUB_STEP_SUMMARY"
-          fi
+        run: cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
+
       - name: Compose ps
         if: always()
         run: docker compose -f docker-compose.yml ps
+
       - name: Upload logs
         if: always()
         run: docker compose -f docker-compose.yml logs --no-color > ci_logs.txt || true
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

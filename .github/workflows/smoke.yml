@@ -1,50 +1,61 @@
 name: smoke
+
 on:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Compose up
         run: |
-          docker compose -f docker-compose.yml up -d --build || true
+          docker compose -f docker-compose.yml up -d --build
 
-      - name: Wait and probe
+      - name: Wait for health (max 180s)
         run: |
-          set -e
-          probe() { url="$1"; i=0; while [ $i -lt 40 ]; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true); if [ "$code" = "200" ]; then echo "$code"; return 0; fi; sleep 3; i=$((i+1)); done; echo "$code"; return 0; }
-          H19090=$(probe http://localhost:19090/health)
-          H38888=$(probe http://localhost:38888/health)
-          E2E=$(curl -s -H 'Content-Type: application/json' -d '{}' -o /dev/null -w '%{http_code}' http://localhost:38888/v1/plan/compile || true)
-          if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
-            echo "PASS 19090=200 38888=200 E2E=200" | tee smoke_result.txt
-          else
-            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" | tee smoke_result.txt
-          fi
+          end=$((SECONDS+180))
+          ok=0
+          while [ $SECONDS -lt $end ]; do
+            h1=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:19090/health || true)
+            h2=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:38888/health || true)
+            if [ "$h1" = "200" ] && [ "$h2" = "200" ]; then ok=1; break; fi
+            sleep 3
+          done
+          [ "$ok" = "1" ]
+
+      - name: E2E compile
+        id: e2e
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:19090/v1/plan/compile || true)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          test "$code" = "200"
 
       - name: Finalize summary
         if: always()
         run: |
-          if [ ! -f smoke_result.txt ]; then
-            echo "FAIL 19090=? 38888=? E2E=?" > smoke_result.txt
+          H19090=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:19090/health || true)
+          H38888=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:38888/health || true)
+          E2E="${{ steps.e2e.outputs.code || '000' }}"
+          if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
+            echo "PASS 19090=200 38888=200 E2E=200" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
-          cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Compose ps
+      - name: Compose down
         if: always()
-        run: docker compose -f docker-compose.yml ps || true
-
-      - name: Upload logs
-        if: always()
-        run: docker compose -f docker-compose.yml logs --no-color > ci_logs.txt || true
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ci-logs
-          path: ci_logs.txt
-# ci-bump:
+        run: |
+          docker compose -f docker-compose.yml down -v --remove-orphans || true

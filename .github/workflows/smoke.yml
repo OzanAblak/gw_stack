@@ -12,16 +12,9 @@ jobs:
       - name: Init result
         run: echo "FAIL SETUP" > smoke_result.txt
 
-      - name: Compose up
-        run: |
-          set +e
-          docker compose -f docker-compose.yml up -d --build
-          code=$?
-          if [ $code -ne 0 ]; then
-            echo "FAIL SETUP compose=$code" > smoke_result.txt
-            # Devam etsin ki özet yazılsın
-            exit 0
-          fi
+      - - name: Compose up
+  run: docker compose -f docker-compose.yml up -d --build || true
+
 
       - name: Wait and probe
         run: |
@@ -36,9 +29,14 @@ jobs:
             echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" > smoke_result.txt
           fi
 
-      - name: Summarize
-        if: always()
-        run: cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
+      -- name: Finalize summary
+  if: always()
+  run: |
+    if [ ! -f smoke_result.txt ]; then
+      echo "FAIL 19090=? 38888=? E2E=?" | tee smoke_result.txt
+    fi
+    cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
+
 
       - name: Compose ps
         if: always()

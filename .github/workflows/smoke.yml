@@ -9,38 +9,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Init result
-        run: echo "FAIL SETUP" > smoke_result.txt
-
-      - - name: Compose up
-  run: docker compose -f docker-compose.yml up -d --build || true
-
+      - name: Compose up
+        run: |
+          docker compose -f docker-compose.yml up -d --build || true
 
       - name: Wait and probe
         run: |
           set -e
-          probe() { url="$1"; n=0; while :; do c=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true); if [ "$c" = "200" ]; then echo "$c"; return; fi; n=$((n+1)); [ $n -ge 30 ] && { echo "$c"; return; } sleep 3; done; }
+          probe() { url="$1"; i=0; while [ $i -lt 40 ]; do code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true); if [ "$code" = "200" ]; then echo "$code"; return 0; fi; sleep 3; i=$((i+1)); done; echo "$code"; return 0; }
           H19090=$(probe http://localhost:19090/health)
           H38888=$(probe http://localhost:38888/health)
           E2E=$(curl -s -H 'Content-Type: application/json' -d '{}' -o /dev/null -w '%{http_code}' http://localhost:38888/v1/plan/compile || true)
           if [ "$H19090" = "200" ] && [ "$H38888" = "200" ] && [ "$E2E" = "200" ]; then
-            echo "PASS 19090=200 38888=200 E2E=200" > smoke_result.txt
+            echo "PASS 19090=200 38888=200 E2E=200" | tee smoke_result.txt
           else
-            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" > smoke_result.txt
+            echo "FAIL 19090=$H19090 38888=$H38888 E2E=$E2E" | tee smoke_result.txt
           fi
 
-      -- name: Finalize summary
-  if: always()
-  run: |
-    if [ ! -f smoke_result.txt ]; then
-      echo "FAIL 19090=? 38888=? E2E=?" | tee smoke_result.txt
-    fi
-    cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
-
+      - name: Finalize summary
+        if: always()
+        run: |
+          if [ ! -f smoke_result.txt ]; then
+            echo "FAIL 19090=? 38888=? E2E=?" > smoke_result.txt
+          fi
+          cat smoke_result.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Compose ps
         if: always()
-        run: docker compose -f docker-compose.yml ps
+        run: docker compose -f docker-compose.yml ps || true
 
       - name: Upload logs
         if: always()

@@ -1,9 +1,0 @@
-name: selftest
-on: push
-jobs:
-  t:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "HELLO"
-      - name: Summarize
-        run: echo "HELLO" >> "$GITHUB_STEP_SUMMARY"

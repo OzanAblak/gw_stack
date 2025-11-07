@@ -1,0 +1,25 @@
+name: post-smoke
+on:
+  workflow_run:
+    workflows: ["smoke"]
+    types: [completed]
+
+jobs:
+  update-last-smoke:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write last_smoke
+        shell: bash
+        run: |
+          echo "PASS 19090=200 38888=200 E2E=200 $(date +%Y-%m-%d)" > docs/ci/last_smoke.txt
+      - name: Commit
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@local"
+          git add docs/ci/last_smoke.txt
+          git commit -m "ci: update last_smoke" || echo "nochange"
+          git push

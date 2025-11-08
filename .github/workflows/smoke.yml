@@ -4,25 +4,31 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - run: echo "smoke ok"
-  - name: Prepare artifact
-    shell: bash
-    run: |
-      set -euo pipefail
-      mkdir -p out
-      echo "build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > out/placeholder.txt
+      - uses: actions/checkout@v4
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: smoke_artifact
-      path: out/placeholder.txt
-      if-no-files-found: error
-      retention-days: 14
+      # Buraya varsa mevcut smoke test adımların gelebilir.
+      - name: Smoke ping
+        run: echo "smoke ok"
+
+      # Artefakt üret ve yükle (post-smoke SHA256 için gerekli)
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          echo "build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > out/placeholder.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke_artifact
+          path: out/placeholder.txt
+          if-no-files-found: error
+          retention-days: 14

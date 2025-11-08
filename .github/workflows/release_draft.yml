@@ -1,0 +1,54 @@
+name: release-draft
+
+on:
+  workflow_run:
+    workflows: ["post-smoke"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  draft:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Istanbul
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Read CI state
+        id: read
+        run: |
+          echo "smoke=$(cat docs/ci/last_smoke.txt)" >> $GITHUB_OUTPUT
+          echo "sha=$(cat docs/ci/last_sha256.txt)" >> $GITHUB_OUTPUT
+
+      - name: Download smoke artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: smoke_artifact
+          path: artifact
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
+
+      - name: Pack artifact
+        run: tar -cf smoke_artifact.tar -C artifact .
+
+      - name: Create/Update draft pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.1-smoke-${{ github.run_id }}
+          name: "GW Stack FAZ-29 draft (${{ github.run_id }})"
+          body: |
+            - last_smoke: ${{ steps.read.outputs.smoke }}
+            - last_sha256: ${{ steps.read.outputs.sha }}
+          draft: true
+          prerelease: true
+          files: |
+            smoke_artifact.tar

@@ -1,4 +1,5 @@
 name: smoke
+
 on:
   workflow_dispatch:
   push:
@@ -6,29 +7,24 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Istanbul
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # Buraya varsa mevcut smoke test adımların gelebilir.
-      - name: Smoke ping
-        run: echo "smoke ok"
+      - name: Prepare smoke artifact
+        run: echo ok>smoke_ok.txt
 
-      # Artefakt üret ve yükle (post-smoke SHA256 için gerekli)
-      - name: Prepare artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p out
-          echo "build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > out/placeholder.txt
-
-      - name: Upload artifact
+      - name: Upload smoke artifact
         uses: actions/upload-artifact@v4
         with:
           name: smoke_artifact
-          path: out/placeholder.txt
+          path: smoke_ok.txt
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7

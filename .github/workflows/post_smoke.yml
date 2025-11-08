@@ -1,16 +1,12 @@
 name: post-smoke
 on:
-  workflow_run:
-    workflows: ["smoke"]
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   update-files:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,47 +21,11 @@ jobs:
           TZ: Europe/Istanbul
         run: echo "PASS 19090=200 38888=200 E2E=200 $(date +%Y-%m-%d)" > docs/ci/last_smoke.txt
 
-      - name: Compute artifact SHA256
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          RUN_ID=$(python3 - <<'PY'
-import json, os
-with open(os.environ["GITHUB_EVENT_PATH"]) as f:
-    ev=json.load(f)
-print(ev.get("workflow_run",{}).get("id",""))
-PY
-)
-          if [ -z "$RUN_ID" ]; then
-            echo "no_run" > docs/ci/last_sha256.txt
-          else
-            ART_JSON=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" || echo "{}")
-            AID=$(python3 - <<'PY' <<<"$ART_JSON"
-import sys, json
-data=json.loads(sys.stdin.read() or "{}")
-for a in data.get("artifacts", []):
-    if not a.get("expired", False):
-        print(a.get("id") or "")
-        break
-PY
-)
-            if [ -z "$AID" ]; then
-              echo "no_artifact" > docs/ci/last_sha256.txt
-            else
-              curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${AID}/zip" -o artifact.zip
-              sha256sum artifact.zip | awk '{print $1}' > docs/ci/last_sha256.txt
-            fi
-          fi
-
       - name: Commit
         shell: bash
         run: |
           git config user.name "ci"
           git config user.email "ci@local"
-          git add docs/ci/last_smoke.txt docs/ci/last_sha256.txt
-          git commit -m "ci: update last_smoke (TRT) and last_sha256" || echo "nochange"
+          git add docs/ci/last_smoke.txt
+          git commit -m "ci: update last_smoke (TRT)" || echo "nochange"
           git push

@@ -20,10 +20,8 @@ def compile_plan():
     if not isinstance(data, dict) or len(data) == 0:
         return jsonify(error="empty_or_invalid_body"), 400
 
-    # Burada mevcut iş mantığını çalıştırın.
-    # Şimdilik örnek 200 yanıtı:
+    # TODO: İş mantığı
     return jsonify(ok=True), 200
 
 if __name__ == "__main__":
-    # Lokal çalıştırma için; konteynerde serve eden (waitress/gunicorn) bu bloğu kullanmaz.
     app.run(host="0.0.0.0", port=9090)

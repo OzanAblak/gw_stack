@@ -55,3 +55,8 @@
 - last_sha256: 10349fbe2db9cf47be00200cfd00b5cb8bc83ffcac267c1d7d71112ae732bd7d
 - Release: v0.1.1-smoke-20251108-2 (pre-release) yayınlandı.
 - Dokümantasyon: plan ve devir özetleri güncellendi.
+## STABLE RELEASE — 2025-11-08 (TRT/UTC+3)
+- Tag: v0.1.1
+- last_smoke: PASS 19090=200 38888=200 E2E=200 2025-11-08
+- last_sha256: 10349fbe2db9cf47be00200cfd00b5cb8bc83ffcac267c1d7d71112ae732bd7d
+- Tür: Stable

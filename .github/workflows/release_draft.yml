@@ -1,5 +1,4 @@
 name: release-draft
-
 on:
   workflow_run:
     workflows: ["post-smoke"]
@@ -40,15 +39,43 @@ jobs:
       - name: Pack artifact
         run: tar -cf smoke_artifact.tar -C artifact .
 
-      - name: Create/Update draft pre-release
-        uses: softprops/action-gh-release@v2
+      - name: Ensure draft release
+        id: rel
+        uses: actions/github-script@v7
+        env:
+          SMOKE: ${{ steps.read.outputs.smoke }}
+          SHA: ${{ steps.read.outputs.sha }}
         with:
-          tag_name: v0.1.1-smoke-${{ github.run_id }}
-          name: "GW Stack FAZ-29 draft (${{ github.run_id }})"
-          body: |
-            - last_smoke: ${{ steps.read.outputs.smoke }}
-            - last_sha256: ${{ steps.read.outputs.sha }}
-          draft: true
-          prerelease: true
-          files: |
-            smoke_artifact.tar
+          script: |
+            const {owner, repo} = context.repo;
+            const tag = `v0.1.1-smoke-${process.env.GITHUB_RUN_ID}`;
+            const name = `GW Stack FAZ-29 draft (${process.env.GITHUB_RUN_ID})`;
+            const body = `- last_smoke: ${process.env.SMOKE}\n- last_sha256: ${process.env.SHA}`;
+            let rel;
+            try {
+              rel = await github.rest.repos.getReleaseByTag({owner, repo, tag});
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: rel.data.id,
+                name, body, draft: true, prerelease: true
+              });
+            } catch (e) {
+              if (e.status === 404) {
+                rel = await github.rest.repos.createRelease({
+                  owner, repo, tag_name: tag, name, body, draft: true, prerelease: true
+                });
+              } else {
+                throw e;
+              }
+            }
+            core.setOutput('upload_url', rel.data.upload_url);
+            core.setOutput('html_url', rel.data.html_url);
+
+      - name: Upload artifact to draft
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.rel.outputs.upload_url }}
+          asset_path: smoke_artifact.tar
+          asset_name: smoke_artifact.tar
+          asset_content_type: application/x-tar

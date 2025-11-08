@@ -1,28 +1,29 @@
-# planner/app.py — minimal, sağlam Flask app (Waitress ile 9090)
-import uuid
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, Response
 
 app = Flask(__name__)
 
-# Health: 200 döner (HEAD de destekli)
-@app.route("/health", methods=["GET", "HEAD"])
+@app.get("/health")
 def health():
-    return ("ok", 200, {"Content-Type": "text/plain"})
+    return Response("ok", status=200, mimetype="text/plain")
 
-# E2E ölçütü: compile -> planId + 200
-@app.route("/v1/plan/compile", methods=["POST"])
+@app.post("/v1/plan/compile")
 def compile_plan():
-    # Gövdeyi önemsemiyoruz; sadece planId üretiyoruz
-    pid = str(uuid.uuid4())
-    return jsonify({"planId": pid}), 200
+    # Content-Type kontrolü
+    if not request.is_json:
+        return jsonify(error="content_type_must_be_application_json"), 400
 
-# Opsiyonel gösterim: geçerli UUID ise 200 döner
-@app.route("/v1/plan/<plan_id>", methods=["GET"])
-def get_plan(plan_id: str):
+    # Boş gövde veya geçersiz JSON kontrolü
     try:
-        uuid.UUID(plan_id)
+        data = request.get_json(silent=False)
     except Exception:
-        abort(404)
-    return jsonify({"planId": plan_id}), 200
+        return jsonify(error="invalid_json"), 400
+    if not isinstance(data, dict) or len(data) == 0:
+        return jsonify(error="empty_or_invalid_body"), 400
 
-# Not: Waitress, Dockerfile'daki CMD ile çalıştırılıyor (app:app @ 0.0.0.0:9090)
+    # Burada mevcut iş mantığını çalıştırın.
+    # Şimdilik örnek 200 yanıtı:
+    return jsonify(ok=True), 200
+
+if __name__ == "__main__":
+    # Lokal çalıştırma için; konteynerde serve eden (waitress/gunicorn) bu bloğu kullanmaz.
+    app.run(host="0.0.0.0", port=9090)

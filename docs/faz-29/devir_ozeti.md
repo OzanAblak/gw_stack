@@ -47,3 +47,11 @@
 - Tag: v0.1.1-smoke-20251108-2
 - last_sha256: 10349fbe2db9cf47be00200cfd00b5cb8bc83ffcac267c1d7d71112ae732bd7d
 - Tür: Pre-release
+## GÜNLÜK ÖZET — 2025-11-08 (TRT/UTC+3)
+- Negatif E2E: PASS.
+  - N1=404, N2=400, N3=400, N4=400, N5=404, N6=404, N7=404, N8=404, N9=404, N10=400, N11=400, N12=405
+- Gateway /health: POST=405 olacak şekilde düzeltildi ve etkinleştirildi.
+- Smoke: RUN başarılı.
+- last_sha256: 10349fbe2db9cf47be00200cfd00b5cb8bc83ffcac267c1d7d71112ae732bd7d
+- Release: v0.1.1-smoke-20251108-2 (pre-release) yayınlandı.
+- Dokümantasyon: plan ve devir özetleri güncellendi.

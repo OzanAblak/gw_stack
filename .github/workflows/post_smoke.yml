@@ -19,6 +19,10 @@ jobs:
         shell: bash
         run: mkdir -p docs/ci
 
+      - name: Init last_sha256 (default)
+        shell: bash
+        run: echo "no_artifact" > docs/ci/last_sha256.txt
+
       - name: Write last_smoke (TRT)
         shell: bash
         env:
@@ -26,45 +30,32 @@ jobs:
         run: |
           echo "PASS 19090=200 38888=200 E2E=200 $(date +%Y-%m-%d)" > docs/ci/last_smoke.txt
 
-      - name: Derive RUN_ID from event
-        id: rid
-        shell: bash
-        run: |
-          python3 - <<'PY' | tee -a "$GITHUB_ENV"
-          import json, os
-          with open(os.environ["GITHUB_EVENT_PATH"]) as f:
-              ev=json.load(f)
-          print("RUN_ID="+str(ev["workflow_run"]["id"]))
-          PY
-          echo "RID=$RUN_ID"
-
-      - name: Compute artifact SHA256 (Python+curl)
+      - name: Compute artifact SHA256 (no jq)
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
         run: |
           set -euo pipefail
-          RID="${RUN_ID:-}"
-          if [ -z "$RID" ]; then
-            echo "no_run" > docs/ci/last_sha256.txt
-            exit 0
-          fi
+          RUN_ID=$(python3 - <<'PY'
+import json, os
+with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+    ev=json.load(f)
+print(ev["workflow_run"]["id"])
+PY
+)
           ART_JSON=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-                     "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RID}/artifacts?per_page=100" || echo "{}")
+                     "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" || echo "{}")
           AID=$(python3 - <<'PY' <<<"$ART_JSON"
 import sys, json
 data=json.loads(sys.stdin.read() or "{}")
-aid=""
 for a in data.get("artifacts", []):
     if not a.get("expired", False):
-        aid=str(a.get("id") or "")
+        print(a.get("id") or "")
         break
-print(aid)
 PY
 )
-          if [ -z "$AID" ]; then
-            echo "no_artifact" > docs/ci/last_sha256.txt
-          else
+          if [ -n "$AID" ]; then
             curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" \
                  "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${AID}/zip" -o artifact.zip
             sha256sum artifact.zip | awk '{print $1}' > docs/ci/last_sha256.txt

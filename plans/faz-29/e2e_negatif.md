@@ -75,3 +75,18 @@ Beklenen: `HTTP=405` (405 yoksa 404).
 - Her komut sonrası tek satır çıktıyı bu dosyanın altına ekle:
   - `N<id> => HTTP=<kod>`
 - Geçiş: Tüm beklenen kodlar karşılandıysa “Negatif E2E PASS (tarih)” notu.
+## SONUÇ KAYDI — 2025-11-08 (TRT/UTC+3)
+N1  => HTTP=404
+N2  => HTTP=400
+N3  => HTTP=400
+N4  => HTTP=400
+N5  => HTTP=404
+N6  => HTTP=404
+N7  => HTTP=404
+N8  => HTTP=404
+N9  => HTTP=404
+N10 => HTTP=400
+N11 => HTTP=400
+N12 => HTTP=405
+
+Negatif E2E PASS — 2025-11-08

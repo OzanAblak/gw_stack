@@ -21,11 +21,14 @@ jobs:
 
       - name: Ensure jq
         shell: bash
-        run: sudo apt-get update && sudo apt-get install -y jq
+        run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      - name: Write last_smoke
+      - name: Write last_smoke (TRT)
         shell: bash
-        run: echo "PASS 19090=200 38888=200 E2E=200 $(date +%Y-%m-%d)" > docs/ci/last_smoke.txt
+        env:
+          TZ: Europe/Istanbul
+        run: |
+          echo "PASS 19090=200 38888=200 E2E=200 $(date +%Y-%m-%d)" > docs/ci/last_smoke.txt
 
       - name: Compute artifact SHA256
         shell: bash
@@ -49,5 +52,5 @@ jobs:
           git config user.name "ci"
           git config user.email "ci@local"
           git add docs/ci/last_smoke.txt docs/ci/last_sha256.txt
-          git commit -m "ci: update last_smoke and last_sha256" || echo "nochange"
+          git commit -m "ci: update last_smoke (TRT) and last_sha256" || echo "nochange"
           git push

@@ -1,0 +1,11 @@
+* Unmerged path .github/workflows/smoke.yml
+diff --git a/docs/ci/last_smoke.txt b/docs/ci/last_smoke.txt
+index 420ab52..e1a3d6f 100644
+--- a/docs/ci/last_smoke.txt
++++ b/docs/ci/last_smoke.txt
+@@ -1,3 +1 @@
+-PASS 19090=200 38888=200 E2E=200
+-PASS 19090=200 38888=200 E2E=200 2025-11-03 16:56
+-PASS 19090=200 38888=200 E2E=200 2025-11-04
++PASS 19090=200 38888=200 E2E=200 2025-11-06
+\ No newline at end of file

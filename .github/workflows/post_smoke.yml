@@ -1,48 +1,42 @@
-name: post-smoke
+name: post_smoke
 
 on:
   workflow_run:
     workflows: ["smoke"]
     types: [completed]
-
-permissions:
-  contents: write
-  actions: read
+    branches: ["main"]
 
 jobs:
-  update-ci-state:
+  post_smoke:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    env:
-      TZ: Europe/Istanbul
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          persist-credentials: true
+          python-version: '3.x'
 
-      - name: Write last_smoke.txt
-        run: echo "PASS 19090=200 38888=200 E2E=200 $(date +'%Y-%m-%d')" > docs/ci/last_smoke.txt
+      - name: Create DoD artifacts (last_smoke.txt, last_sha256.txt)
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Eo "PASS .*" docs/ci/DoD.txt | head -n1 > last_smoke.txt
+          python - <<'PY'
+import hashlib
+d=open('last_smoke.txt','rb').read()
+open('last_sha256.txt','w').write(hashlib.sha256(d).hexdigest())
+PY
 
-      - name: Download smoke artifact
-        uses: actions/download-artifact@v4
+      - name: Upload DoD artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: smoke_artifact
-          path: artifact
-          repository: ${{ github.repository }}
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          merge-multiple: true
-
-      - name: Compute SHA256
-        run: |
-          tar -cf smoke_artifact.tar -C artifact .
-          sha256sum smoke_artifact.tar | awk '{print $1}' > docs/ci/last_sha256.txt
-
-      - name: Commit last_smoke + last_sha256
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/ci/last_smoke.txt docs/ci/last_sha256.txt
-          git commit -m "ci: update last_smoke + last_sha256 (TRT)" || echo "no changes"
-          git push
+          name: post_smoke_artifacts
+          path: |
+            last_smoke.txt
+            last_sha256.txt

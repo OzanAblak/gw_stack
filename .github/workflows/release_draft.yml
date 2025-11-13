@@ -39,8 +39,10 @@ jobs:
 
       - name: Ensure draft release exists
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Draft exists: $TAG"
           else
@@ -50,8 +52,11 @@ jobs:
       - name: Download DoD artifacts from post_smoke run
         if: env.RUN_ID != ''
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ env.RUN_ID }}
         run: |
+          set -euo pipefail
           gh run download "$RUN_ID" -n post_smoke_artifacts -D dist/release_assets || echo "NO_ARTIFACTS"
 
       - name: Fallback: create DoD artifacts from repo if missing
@@ -68,20 +73,32 @@ d = p.read_bytes()
 pathlib.Path("dist/release_assets/last_sha256.txt").write_text(hashlib.sha256(d).hexdigest())
 PY
           fi
+
+      - name: Debug assets dir
+        shell: bash
+        run: |
+          set -euo pipefail
           ls -l dist/release_assets || true
+          for f in dist/release_assets/*; do
+            [ -f "$f" ] && echo "$(basename "$f") SIZE=$(wc -c <"$f")"
+          done
 
       - name: Upload assets to draft release
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           if compgen -G "dist/release_assets/*" > /dev/null; then
             gh release upload "$TAG" dist/release_assets/* --clobber
           else
             echo "No assets to upload"
+            exit 1
           fi
 
       - name: Show release summary
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "$TAG" --json tagName,isDraft,isPrerelease,assets,url --template '{{.tagName}} DRAFT={{.isDraft}} PRE={{.isPrerelease}} ASSETS={{len .assets}} URL={{.url}}'

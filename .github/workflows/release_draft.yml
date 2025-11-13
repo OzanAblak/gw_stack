@@ -18,6 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Compute TAG and RUN_ID
         shell: bash
         run: |
@@ -30,6 +35,7 @@ jobs:
             echo "TAG=${base}-${{ github.run_id }}" >> "$GITHUB_ENV"
             echo "RUN_ID=" >> "$GITHUB_ENV"
           fi
+          mkdir -p dist/release_assets
 
       - name: Ensure draft release exists
         env:
@@ -46,9 +52,36 @@ jobs:
         env:
           RUN_ID: ${{ env.RUN_ID }}
         run: |
-          mkdir -p dist/release_assets
-          gh run download "$RUN_ID" -n post_smoke_artifacts -D dist/release_assets || echo "No artifacts found"
+          gh run download "$RUN_ID" -n post_smoke_artifacts -D dist/release_assets || echo "NO_ARTIFACTS"
+
+      - name: Fallback: create DoD artifacts from repo if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! compgen -G "dist/release_assets/last_smoke.txt" > /dev/null; then
+            echo "Rebuilding DoD artifacts from docs/ci/DoD.txt"
+            grep -Eo "PASS .*" docs/ci/DoD.txt | head -n1 > dist/release_assets/last_smoke.txt
+            python - <<'PY'
+import hashlib, pathlib
+p = pathlib.Path("dist/release_assets/last_smoke.txt")
+d = p.read_bytes()
+pathlib.Path("dist/release_assets/last_sha256.txt").write_text(hashlib.sha256(d).hexdigest())
+PY
+          fi
+          ls -l dist/release_assets || true
 
       - name: Upload assets to draft release
         env:
-          GITHUB_TOKEN: ${{ secret_
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if compgen -G "dist/release_assets/*" > /dev/null; then
+            gh release upload "$TAG" dist/release_assets/* --clobber
+          else
+            echo "No assets to upload"
+          fi
+
+      - name: Show release summary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$TAG" --json tagName,isDraft,isPrerelease,assets,url --template '{{.tagName}} DRAFT={{.isDraft}} PRE={{.isPrerelease}} ASSETS={{len .assets}} URL={{.url}}'

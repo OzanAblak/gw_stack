@@ -42,6 +42,11 @@ jobs:
           date_utc=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo "PASS 19090=200 38888=200 E2E=200 SMOKE_RUN_ID=${{ github.event.workflow_run.id }} SHA=${{ github.event.workflow_run.head_sha }} DATE=${date_utc}" >> docs/ci/DoD.txt
 
+      - name: List docs/ci before upload
+        run: |
+          echo "docs/ci contents:"
+          ls -R docs/ci
+
       - name: Upload post_smoke artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -4,101 +4,72 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows: ["post_smoke"]
-    types: [completed]
-    branches: ["main"]
+    types:
+      - completed
 
 jobs:
   release_draft:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout
+      - name: Checkout smoke commit
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Checkout current ref
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download DoD artifacts from post_smoke
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v4
         with:
-          python-version: '3.x'
+          name: dod-artifacts
+          path: ci_artifacts
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Compute TAG and RUN_ID
-        shell: bash
+      - name: Generate DoD for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          set -euo pipefail
-          base="v0.1.1-draft"
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            echo "TAG=${base}-${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
-            echo "RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+          mkdir -p ci_artifacts
+          if [ -f docs/ci/DoD.txt ]; then
+            cp docs/ci/DoD.txt ci_artifacts/DoD.txt
           else
-            echo "TAG=${base}-${{ github.run_id }}" >> "$GITHUB_ENV"
-            echo "RUN_ID=" >> "$GITHUB_ENV"
-          fi
-          mkdir -p dist/release_assets
-
-      - name: Ensure draft release exists
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Draft exists: $TAG"
-          else
-            gh release create "$TAG" --draft --title "$TAG" --notes "Automated draft release."
+            echo "MANUAL DoD fallback for run ${GITHUB_RUN_ID}" > ci_artifacts/DoD.txt
           fi
 
-      - name: Download DoD artifacts from post_smoke run
-        if: env.RUN_ID != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_ID: ${{ env.RUN_ID }}
+      - name: List ci_artifacts
         run: |
-          set -euo pipefail
-          gh run download "$RUN_ID" -n post_smoke_artifacts -D dist/release_assets || echo "NO_ARTIFACTS"
+          echo "ci_artifacts tree:"
+          ls -R ci_artifacts || echo "ci_artifacts missing!"
 
-      - name: Fallback: create DoD artifacts from repo if missing
-        shell: bash
+      - name: Compute release tag
+        id: meta
         run: |
-          set -euo pipefail
-          if ! compgen -G "dist/release_assets/last_smoke.txt" > /dev/null; then
-            echo "Rebuilding DoD artifacts from docs/ci/DoD.txt"
-            grep -Eo "PASS .*" docs/ci/DoD.txt | head -n1 > dist/release_assets/last_smoke.txt
-            python - <<'PY'
-import hashlib, pathlib
-p = pathlib.Path("dist/release_assets/last_smoke.txt")
-d = p.read_bytes()
-pathlib.Path("dist/release_assets/last_sha256.txt").write_text(hashlib.sha256(d).hexdigest())
-PY
-          fi
+          TAG="v0.1.1-draft-${GITHUB_RUN_ID}"
+          NAME="GW Stack Draft ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "Computed tag: ${TAG}"
+          echo "Release name: ${NAME}"
 
-      - name: Debug assets dir
-        shell: bash
-        run: |
-          set -euo pipefail
-          ls -l dist/release_assets || true
-          for f in dist/release_assets/*; do
-            [ -f "$f" ] && echo "$(basename "$f") SIZE=$(wc -c <"$f")"
-          done
-
-      - name: Upload assets to draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          if compgen -G "dist/release_assets/*" > /dev/null; then
-            gh release upload "$TAG" dist/release_assets/* --clobber
-          else
-            echo "No assets to upload"
-            exit 1
-          fi
-
-      - name: Show release summary
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view "$TAG" --json tagName,isDraft,isPrerelease,assets,url --template '{{.tagName}} DRAFT={{.isDraft}} PRE={{.isPrerelease}} ASSETS={{len .assets}} URL={{.url}}'
+      - name: Create or update draft release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          draft: true
+          prerelease: false
+          artifacts: "ci_artifacts/**"
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          generateReleaseNotes: true
+          token: ${{ secrets.GITHUB_TOKEN }}

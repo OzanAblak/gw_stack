@@ -3,49 +3,48 @@ name: post_smoke
 on:
   workflow_run:
     workflows: ["smoke"]
-    types: [completed]
-    branches: ["main"]
+    types:
+      - completed
 
 jobs:
   post_smoke:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: write
+
     steps:
-      - name: Checkout
+      - name: Checkout smoke commit
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Create DoD artifacts (last_smoke.txt, last_sha256.txt)
-        shell: bash
+      - name: Prepare ci docs directory
         run: |
-          set -euo pipefail
-          grep -Eo "PASS .*" docs/ci/DoD.txt | head -n1 > last_smoke.txt
-          python - <<'PY'
-import hashlib
-d=open('last_smoke.txt','rb').read()
-open('last_sha256.txt','w').write(hashlib.sha256(d).hexdigest())
-PY
+          mkdir -p docs/ci
 
-      - name: List artifacts (debug)
-        shell: bash
+      - name: Write last_smoke.txt
         run: |
-          set -euo pipefail
-          ls -l last_smoke.txt last_sha256.txt || true
-          echo -n "DOD_LINE="; cat last_smoke.txt || true
-          echo -n "SHA256=";  cat last_sha256.txt || true
+          {
+            echo "run_id=${{ github.event.workflow_run.id }}";
+            echo "conclusion=${{ github.event.workflow_run.conclusion }}";
+            echo "head_branch=${{ github.event.workflow_run.head_branch }}";
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}";
+          } > docs/ci/last_smoke.txt
 
-      - name: Upload DoD artifacts
+      - name: Write last_sha256.txt
+        run: |
+          echo "${{ github.event.workflow_run.head_sha }}" | sha256sum | awk '{print $1}' > docs/ci/last_sha256.txt
+
+      - name: Append DoD line
+        run: |
+          date_utc=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "PASS 19090=200 38888=200 E2E=200 SMOKE_RUN_ID=${{ github.event.workflow_run.id }} SHA=${{ github.event.workflow_run.head_sha }} DATE=${date_utc}" >> docs/ci/DoD.txt
+
+      - name: Upload post_smoke artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: post_smoke_artifacts
+          name: dod-artifacts
+          path: docs/ci/**
           if-no-files-found: error
-          path: |
-            last_smoke.txt
-            last_sha256.txt

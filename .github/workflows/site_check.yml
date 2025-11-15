@@ -1,0 +1,25 @@
+name: site_check
+
+on:
+  push:
+    branches:
+      - main
+      - feat/site-landing
+  workflow_dispatch:
+
+
+jobs:
+  site-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List site directory
+        run: |
+          ls -R
+          ls -R site || echo "site directory not found"
+
+      - name: Ensure site index exists
+        run: test -f site/index.html

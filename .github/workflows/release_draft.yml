@@ -1,55 +1,91 @@
-name: release-draft
+name: release_draft
 
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["post-smoke"]
-    types: [completed]
-
-permissions:
-  contents: write
-  actions: read
+    workflows: ["post_smoke"]
+    types:
+      - completed
 
 jobs:
-  draft:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  release_draft:
+    # workflow_dispatch ise her zaman çalışsın,
+    # workflow_run ise sadece başarılı post_smoke + main için çalışsın.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      actions: read
+
     env:
-      TZ: Europe/Istanbul
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          fetch-depth: 0
 
-      - name: Read CI state
-        id: read
+      - name: Set variables
+        id: vars
         run: |
-          echo "smoke=$(cat docs/ci/last_smoke.txt)" >> $GITHUB_OUTPUT
-          echo "sha=$(cat docs/ci/last_sha256.txt)" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "SOURCE_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            echo "SOURCE_SHA=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "SOURCE_BRANCH=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "SOURCE_RUN_ID=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "SOURCE_SHA=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "SOURCE_BRANCH=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Ensure draft pre-release
-        uses: actions/github-script@v7
-        env:
-          SMOKE: ${{ steps.read.outputs.smoke }}
-          SHA: ${{ steps.read.outputs.sha }}
+      - name: Download DoD artifacts from post_smoke
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v4
         with:
-          script: |
-            const {owner, repo} = context.repo;
-            const tag = `v0.1.1-draft-${context.runId}`;
-            const name = `GW Stack FAZ-29 draft (${context.runId})`;
-            const body = `- last_smoke: ${process.env.SMOKE}\n- last_sha256: ${process.env.SHA}`;
-            try {
-              const rel = await github.rest.repos.getReleaseByTag({owner, repo, tag});
-              await github.rest.repos.updateRelease({
-                owner, repo, release_id: rel.data.id, name, body, draft: true, prerelease: true
-              });
-            } catch (e) {
-              if (e.status === 404) {
-                await github.rest.repos.createRelease({
-                  owner, repo, tag_name: tag, name, body, draft: true, prerelease: true, target_commitish: 'main'
-                });
-              } else {
-                throw e;
-              }
-            }
+          name: dod-artifacts
+          path: ci_artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Generate fallback DoD for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          mkdir -p ci_artifacts
+          {
+            echo "Manual release_draft run"
+            echo "run_id=${{ github.run_id }}"
+            echo "sha=${{ github.sha }}"
+          } > ci_artifacts/DoD.txt
+
+      - name: List ci_artifacts
+        run: |
+          echo "Listing ci_artifacts directory (if it exists):"
+          if [ -d "ci_artifacts" ]; then
+            ls -R ci_artifacts
+          else
+            echo "ci_artifacts directory not found"
+          fi
+
+      - name: Compute release tag
+        id: tag
+        run: |
+          VERSION="v0.1.1-draft-${{ github.run_id }}"
+          echo "TAG=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update draft release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag.outputs.TAG }}
+          name: ${{ steps.tag.outputs.TAG }}
+          draft: true
+          prerelease: false
+          allowUpdates: true
+          artifacts: "ci_artifacts/**"
+          artifactErrorsFailBuild: true
+          token: ${{ env.GH_TOKEN }}

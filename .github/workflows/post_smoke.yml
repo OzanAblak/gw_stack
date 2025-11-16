@@ -1,48 +1,60 @@
-name: post-smoke
+name: post_smoke
 
 on:
   workflow_run:
     workflows: ["smoke"]
-    types: [completed]
-
-permissions:
-  contents: write
-  actions: read
+    types:
+      - completed
 
 jobs:
-  update-ci-state:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  post_smoke:
+    # Sadece başarılı smoke run'larında ve main branch için çalışsın.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
-    env:
-      TZ: Europe/Istanbul
+
+    permissions:
+      contents: read
+      actions: write
+
     steps:
-      - name: Checkout
+      - name: Checkout smoke commit
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Prepare ci docs directory
+        run: mkdir -p docs/ci
 
       - name: Write last_smoke.txt
-        run: echo "PASS 19090=200 38888=200 E2E=200 $(date +'%Y-%m-%d')" > docs/ci/last_smoke.txt
+        run: |
+          {
+            echo "run_id=${{ github.event.workflow_run.id }}"
+            echo "conclusion=${{ github.event.workflow_run.conclusion }}"
+            echo "head_branch=${{ github.event.workflow_run.head_branch }}"
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}"
+          } > docs/ci/last_smoke.txt
 
-      - name: Download smoke artifact
-        uses: actions/download-artifact@v4
+      - name: Write last_sha256.txt
+        run: |
+          echo "${{ github.event.workflow_run.head_sha }}" | sha256sum > docs/ci/last_sha256.txt
+
+      - name: Append DoD line
+        run: |
+          echo "PASS 19090=200 38888=200 E2E=200 run_id=${{ github.event.workflow_run.id }} sha=${{ github.event.workflow_run.head_sha }}" >> docs/ci/DoD.txt
+
+      - name: Debug docs/ci
+        run: |
+          echo "pwd:"
+          pwd
+          echo "ls -R:"
+          ls -R
+          echo "docs/ci listing:"
+          ls -l docs/ci || echo "docs/ci not found"
+
+      - name: Upload post_smoke artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: smoke_artifact
-          path: artifact
-          repository: ${{ github.repository }}
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          merge-multiple: true
-
-      - name: Compute SHA256
-        run: |
-          tar -cf smoke_artifact.tar -C artifact .
-          sha256sum smoke_artifact.tar | awk '{print $1}' > docs/ci/last_sha256.txt
-
-      - name: Commit last_smoke + last_sha256
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/ci/last_smoke.txt docs/ci/last_sha256.txt
-          git commit -m "ci: update last_smoke + last_sha256 (TRT)" || echo "no changes"
-          git push
+          name: dod-artifacts
+          path: docs/ci/*
+          if-no-files-found: error

@@ -1,1 +1,27 @@
-﻿plans/
+﻿# Local scratch / SHA / b64
+MAIN_SHA.txt
+app_b64.txt
+app_sha_main.txt
+b64.txt
+sha.txt
+
+# Local override and patches
+docker-compose.override.local
+hotpatch_n13.py
+
+# Local payloads
+payload_faz30.json
+payload_n13.json
+
+# Logs
+push.log
+push2.log
+push_ssh.log
+
+# Local backup
+site/index_faz40_backup.html.html
+
+# Local work directory
+local/
+# Local plans (not versioned)
+plans/

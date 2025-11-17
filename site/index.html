@@ -2,256 +2,857 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>GW Stack — CI Zincirini Kontrol Altına Al</title>
+  <title>GW Stack – CI & Release Omurganı 1 Günde Ayağa Kaldır</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="GW Stack, küçük ekiplere üretim seviyesinde CI & release zinciri sağlayan hafif bir iskelet projedir. Smoke, post-smoke, release draft ve DoD çıktıları tek omurgada birleşir."
+  />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #e5e7eb;
       line-height: 1.5;
-      color: #111;
-      background: #f5f5f5;
     }
-    .page {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 24px 16px 48px;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 32px;
-      padding-top: 16px;
-    }
-    header h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-    header p {
-      color: #444;
-      font-size: 0.95rem;
-    }
-    .hero {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 24px 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-      text-align: center;
-    }
-    .hero h2 {
-      font-size: 1.6rem;
-      margin-bottom: 8px;
-    }
-    .hero p {
-      color: #444;
-      margin-bottom: 20px;
-    }
-    .hero-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-primary,
-    .btn-secondary {
-      display: inline-block;
-      padding: 10px 18px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      text-decoration: none;
-      border: 1px solid transparent;
-      cursor: pointer;
-    }
-    .btn-primary {
-      background: #111;
-      color: #fff;
-      border-color: #111;
-    }
-    .btn-secondary {
-      background: #fff;
-      color: #111;
-      border-color: #ddd;
-    }
-    .section {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 20px 18px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-    }
-    .section h3 {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-    .section p {
-      font-size: 0.95rem;
-      color: #444;
-      margin-bottom: 8px;
-    }
-    .section ul {
-      list-style: disc;
-      padding-left: 20px;
-      font-size: 0.95rem;
-      color: #444;
-    }
-    .pill {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #111;
-      color: #fff;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
-    }
-    footer {
-      text-align: center;
-      margin-top: 32px;
-      font-size: 0.8rem;
-      color: #666;
-    }
-    footer a {
-      color: #444;
+
+    a {
+      color: inherit;
       text-decoration: none;
     }
 
-    @media (min-width: 720px) {
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(5, 8, 22, 0.9);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .logo-mark {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #4f46e5);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .nav-links a {
+      padding: 6px 10px;
+      border-radius: 999px;
+      transition: background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      background: rgba(148, 163, 184, 0.12);
+      opacity: 1;
+    }
+
+    main {
+      flex: 1;
+    }
+
+    .hero {
+      padding: 48px 24px 40px;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr);
+      gap: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 900px) {
       .hero {
-        text-align: left;
-      }
-      .hero-layout {
-        display: flex;
-        gap: 24px;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
         align-items: center;
-        justify-content: space-between;
       }
-      .hero-text {
-        flex: 1.2;
+    }
+
+    .hero-kicker {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #a5b4fc;
+      margin-bottom: 10px;
+    }
+
+    .hero-title {
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .hero-title span {
+      background-image: linear-gradient(120deg, #22d3ee, #a855f7, #f97316);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: #9ca3af;
+      max-width: 520px;
+      margin-bottom: 20px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 12px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #e5e7eb;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .btn-primary,
+    .btn-ghost {
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background-image: linear-gradient(120deg, #22d3ee, #6366f1);
+      color: #0f172a;
+      border-color: rgba(248, 250, 252, 0.9);
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(79, 70, 229, 0.6);
+    }
+
+    .btn-ghost {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(148, 163, 184, 0.4);
+      color: #e5e7eb;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(30, 64, 175, 0.45);
+    }
+
+    .hero-note {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .hero-note strong {
+      color: #e5e7eb;
+    }
+
+    .hero-right {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.12), transparent),
+                  radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.12), transparent);
+      padding: 18px 18px 16px;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    .hero-right-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .hero-right-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    .hero-code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(15, 23, 42, 0.75);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .code-line {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .code-line span.ln {
+      color: #6b7280;
+      min-width: 24px;
+      text-align: right;
+      user-select: none;
+    }
+
+    .code-line span.cmd {
+      color: #e5e7eb;
+    }
+
+    .code-line span.comment {
+      color: #a5b4fc;
+    }
+
+    .code-line span.ok {
+      color: #4ade80;
+    }
+
+    .code-line span.err {
+      color: #f97373;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .metric {
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      padding: 8px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .section {
+      padding: 24px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      border-top: 1px solid rgba(30, 64, 175, 0.35);
+    }
+
+    .section-header {
+      margin-bottom: 18px;
+    }
+
+    .section-kicker {
+      font-size: 11px;
+      color: #818cf8;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-bottom: 4px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    @media (min-width: 900px) {
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .hero-side {
-        flex: 1;
+    }
+
+    .card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at 0 0, rgba(79, 70, 229, 0.16), transparent),
+                  rgba(15, 23, 42, 0.9);
+      padding: 14px 14px 12px;
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+
+    .card h3 {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: #d1d5db;
+    }
+
+    .list {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      color: #d1d5db;
+    }
+
+    .list-item {
+      display: flex;
+      gap: 8px;
+    }
+
+    .list-item-bullet {
+      font-size: 14px;
+      color: #22d3ee;
+      margin-top: 1px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    @media (min-width: 900px) {
+      .pricing-grid {
+        grid-template-columns: 2fr 3fr;
       }
-      .hero-actions {
-        flex-direction: row;
-        justify-content: flex-start;
+    }
+
+    .price-tag {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .price-note {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 10px;
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    @media (min-width: 900px) {
+      .faq-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+    }
+
+    .faq-item {
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .faq-q {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .faq-a {
+      color: #d1d5db;
+    }
+
+    footer {
+      padding: 14px 24px 20px;
+      font-size: 11px;
+      color: #6b7280;
+      border-top: 1px solid rgba(30, 64, 175, 0.35);
+      text-align: center;
+    }
+
+    footer a {
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 2px;
     }
   </style>
 </head>
 <body>
   <div class="page">
     <header>
-      <div class="pill">Erken Erişim</div>
-      <h1>GW Stack</h1>
-      <p>Smoketest’ten release’e kadar CI zincirini disipline et, DoD’u kodun bir parçası yap.</p>
+      <div class="logo">
+        <div class="logo-mark"></div>
+        <span>GW Stack</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#solution">Çözüm</a>
+        <a href="#how-it-works">Nasıl Çalışır</a>
+        <a href="#who">Kimler İçin</a>
+        <a href="#pricing">Fiyatlandırma</a>
+        <a href="#faq">SSS</a>
+      </nav>
     </header>
 
-    <section class="hero" id="hero">
-      <div class="hero-layout">
-        <div class="hero-text">
-          <h2>CI zincirini kontrol altına al.</h2>
-          <p>
-            GW Stack, smoke → post_smoke → release_draft hattını deterministik hale getirir.
-            Hangi değişikliğin ne zaman “yayına hazır” olduğunu net olarak görürsün.
+    <main>
+      <!-- HERO -->
+      <section class="hero">
+        <div>
+          <div class="hero-kicker">CI / CD & RELEASE OMURGASI</div>
+          <h1 class="hero-title">
+            Küçük bir ekiple <span>üretim seviyesinde CI & release zinciri</span> kur.
+          </h1>
+          <p class="hero-subtitle">
+            GW Stack, smoke → post_smoke → release_draft zinciriyle çalışan,
+            DoD çıktıları ve release notlarını otomatik üreten hafif bir iskelet projedir.
+            CI kurmak için haftalar harcamak yerine, 1 günde ayağa kalk.
           </p>
+
+          <div class="hero-badges">
+            <div class="badge">
+              <span class="badge-dot"></span>
+              smoke / post_smoke / release_draft zinciri
+            </div>
+            <div class="badge">Deterministik DoD.txt artefaktı</div>
+            <div class="badge">Landing + erken erişim formu entegre</div>
+          </div>
+
           <div class="hero-actions">
-            <!-- Erken erişim formu -->
-            <a href="https://forms.gle/cPkNNQpnbvNtEfxS6" class="btn-primary">Erken erişim başvurusu yap</a>
-            <a href="#details" class="btn-secondary">Teknik detayları incele</a>
+            <a
+              class="btn-primary"
+              href="https://forms.gle/cPkNNQpnbvNtEfxS6"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Erken erişim başvurusu yap →
+            </a>
+            <a
+              class="btn-ghost"
+              href="https://github.com/OzanAblak/gw_stack"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Teknik detayları incele (GitHub)
+            </a>
           </div>
+
+          <p class="hero-note">
+            <strong>Şu an:</strong> erken erişim dönemi. Başvuru formunu doldur,
+            uygun olduğunda manuel onboarding ile süreci birlikte tasarlayalım.
+          </p>
         </div>
-        <div class="hero-side">
-          <div class="section">
-            <h3>Tek bakışta CI durumu</h3>
+
+        <aside class="hero-right">
+          <div class="hero-right-header">
+            <span class="hero-right-title">CI zinciri anlık görüntü</span>
+            <span>FAZ-39 • main</span>
+          </div>
+          <div class="hero-code">
+            <div class="code-line">
+              <span class="ln">01</span>
+              <span class="cmd">smoke.yml</span>
+              <span class="ok">PASS</span>
+              <span class="comment"># gateway: temel sağlık kontrolü</span>
+            </div>
+            <div class="code-line">
+              <span class="ln">02</span>
+              <span class="cmd">post_smoke.yml</span>
+              <span class="ok">PASS</span>
+              <span class="comment"># DoD artefaktlarını üret</span>
+            </div>
+            <div class="code-line">
+              <span class="ln">03</span>
+              <span class="cmd">release_draft.yml</span>
+              <span class="ok">PASS</span>
+              <span class="comment"># GitHub draft release + DoD.txt</span>
+            </div>
+            <div class="code-line">
+              <span class="ln">04</span>
+              <span class="cmd">site_check.yml</span>
+              <span class="ok">PASS</span>
+              <span class="comment"># landing &amp; form koruma katmanı</span>
+            </div>
+            <div class="code-line">
+              <span class="ln">05</span>
+              <span class="cmd"># DoD referansı:</span>
+            </div>
+            <div class="code-line">
+              <span class="ln">06</span>
+              <span class="cmd"># PASS 19090=200 38888=200 E2E=200</span>
+            </div>
+          </div>
+          <div class="hero-metrics">
+            <div class="metric">
+              <div class="metric-label">OMURGA</div>
+              <div class="metric-value">CI zinciri + DoD artefaktı</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">DURUM</div>
+              <div class="metric-value">FAZ-39 • Landing entegre</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- PROBLEM & ÇÖZÜM -->
+      <section id="problem" class="section">
+        <div class="section-header">
+          <div class="section-kicker">Problem</div>
+          <h2 class="section-title">CI & release işini “sonra bakarız”a atmak pahalı.</h2>
+          <p class="section-subtitle">
+            Çoğu küçük ekip önce ürüne odaklanıyor, CI & release omurgasını ise erteliyor.
+            Sonuç: her deploy stresli, her bugfix manuel, her prod insiyatifinde “kim neyi, ne zaman yaptı?”
+            sorusu havada kalıyor.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Neler yanlış gidiyor?</h3>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">•</div>
+                <div>Smoke testleri yok; “çalışıyor mu?” sorusu her deploy’da yeniden soruluyor.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">•</div>
+                <div>Release notları ve DoD çıktıları geliştiricinin hafızasına emanet.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">•</div>
+                <div>Yeni bir CI pipeline kurmak, küçük ekipler için ayrı bir mini-proje haline geliyor.</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="solution" class="card">
+            <h3>GW Stack ne öneriyor?</h3>
             <p>
-              Her smoke run için otomatik DoD ve artefakt üretimi. Release altında DoD.txt ile teknik kanıt hep elinin altında.
+              Sıfırdan CI kurmak yerine, üretim seviyesine yakın bir iskelet projeyi klonla:
             </p>
-            <ul>
-              <li>Deterministik artefakt üretimi</li>
-              <li>Release başına DoD çıktısı</li>
-              <li>GitHub Actions odaklı başlangıç</li>
-            </ul>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">✔</div>
+                <div>Önceden tanımlı smoke → post_smoke → release_draft omurgası.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">✔</div>
+                <div>Deterministik DoD.txt ve release bilgisi üreten pipeline.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">✔</div>
+                <div>Landing + erken erişim başvuru formu ile baştan “talep kanalı” açık.</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section" id="problem">
-      <h3>Problem — Neden GW Stack?</h3>
-      <p>Aşağıdakiler tanıdık geliyorsa, yalnız değilsin:</p>
-      <ul>
-        <li>CI pipeline’lar karışık; kimse hangi koşulda release yapılacağını net bilmiyor.</li>
-        <li>DoD kağıt üzerinde, kodda değil.</li>
-        <li>Her deploy öncesi ayrı bir mini kaos toplantısı gerekiyor.</li>
-      </ul>
-    </section>
+      <!-- NASIL ÇALIŞIR -->
+      <section id="how-it-works" class="section">
+        <div class="section-header">
+          <div class="section-kicker">Nasıl Çalışır</div>
+          <h2 class="section-title">3 katmanlı omurga: smoke, post_smoke, release_draft.</h2>
+          <p class="section-subtitle">
+            GW Stack, hem lokal hem de GitHub Actions üzerinden uçtan uca bir zincir tanımlar.
+            Amaç, her production release’in arkasında kanıtlanabilir bir DoD çıktısı bırakmak.
+          </p>
+        </div>
 
-    <section class="section" id="solution">
-      <h3>Çözüm — Ne Sunuyoruz?</h3>
-      <ul>
-        <li>DoD’u CI zincirinin bir parçası haline getirir.</li>
-        <li>Her smoke run için otomatik DoD ve artefakt üretir.</li>
-        <li>Release’lerin yanında teknik kanıtları (DoD/ci) asset olarak saklar.</li>
-        <li>Tek bir akış: smoke → post_smoke → release_draft.</li>
-      </ul>
-    </section>
+        <div class="grid-2">
+          <div class="card">
+            <h3>1) Smoke</h3>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">1.</div>
+                <div>Temel servislerin ayağa kalktığını ve kritik portların açık olduğunu doğrular.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">2.</div>
+                <div>“Deploy edilebilir” duruma gelmeden önce minimum sağlık kontrolü sağlar.</div>
+              </div>
+            </div>
 
-    <section class="section" id="details">
-      <h3>Nasıl Çalışır? (3 Adım)</h3>
-      <ul>
-        <li>Repo’nu bağla ve GW Stack CI şablonlarını ekle.</li>
-        <li>DoD ve gate kurallarını tanımla (smoke, post_smoke, release_draft).</li>
-        <li>Her deploy öncesi tek bakışta neyin hazır olduğunu gör.</li>
-      </ul>
-    </section>
+            <h3 style="margin-top:10px;">2) post_smoke</h3>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">1.</div>
+                <div>Deterministik DoD ve CI çıktısı üreten artefaktları hazırlar.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">2.</div>
+                <div>Release zincirinin üzerine inşa edilebileceği tekil bir “gerçeklik kaydı” oluşturur.</div>
+              </div>
+            </div>
+          </div>
 
-    <section class="section" id="who-for">
-      <h3>Kimler İçin?</h3>
-      <ul>
-        <li>Küçük ürün takımları (2–10 kişi).</li>
-        <li>Side-project’ini ciddiye alan geliştiriciler.</li>
-        <li>Start-up teknik kurucuları.</li>
-      </ul>
-    </section>
+          <div class="card">
+            <h3>3) release_draft</h3>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">1.</div>
+                <div>GitHub’da draft release açar.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">2.</div>
+                <div>DoD.txt artefaktını release asset’i olarak iliştirir.</div>
+              </div>
+            </div>
 
-    <section class="section" id="pricing">
-      <h3>Fiyatlandırma Taslağı</h3>
-      <p>
-        İlk aşamada basit bir “Erken Erişim” planı:
-      </p>
-      <ul>
-        <li>Tek plan, sabit aylık ücret.</li>
-        <li>Sınırlı takım / proje sayısı.</li>
-        <li>Erken kayıtlar için avantajlı fiyatlandırma.</li>
-      </ul>
-      <p>
-        Detaylar beta sürecinde netleştirilecektir.
-      </p>
-    </section>
+            <h3 style="margin-top:10px;">4) site_check</h3>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">1.</div>
+                <div>
+                  <code>site/index.html</code> dosyasını CI tarafında korur, landing’in kırılmasını engeller.
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">2.</div>
+                <div>Erken erişim formuna giden kanalın ayakta kalmasını garanti altına alır.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <section class="section" id="faq">
-      <h3>Sık Sorulan Sorular</h3>
-      <p><strong>GW Stack tam olarak ne yapıyor?</strong></p>
-      <p>CI zincirini, teknik DoD’u ve release sürecini tek bir disiplinli akışta toplar.</p>
+      <!-- KİMLER İÇİN -->
+      <section id="who" class="section">
+        <div class="section-header">
+          <div class="section-kicker">Kimler İçin</div>
+          <h2 class="section-title">“Önce ürün, CI’yı sonra düşünürüz” diyen küçük ekipler.</h2>
+          <p class="section-subtitle">
+            GW Stack, özellikle 1–5 kişilik ekipler için tasarlandı. Amaç, CI & release omurgasını
+            tek başına kurmaya çalışan “product + dev + DevOps” hibrit profili rahatlatmak.
+          </p>
+        </div>
 
-      <p><strong>Hangi CI ortamlarını destekliyorsunuz?</strong></p>
-      <p>Başlangıç olarak GitHub Actions odaklıyız; ileride diğer CI sistemleri için planlar var.</p>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Senaryo 1 – İlk müşteriye hazırlanırken</h3>
+            <p>
+              MVP’yi çıkardın, ilk gerçek müşteriye yaklaşırken “Bu iş production’da nereye basıyor?”
+              sorusu aklını kurcalıyor. Smoke + post_smoke + release_draft zinciriyle,
+              her release’in arkasında kanıtlanabilir bir DoD bırakabilirsin.
+            </p>
+            <div class="pill-row">
+              <div class="pill">Freelance ürün geliştiriciler</div>
+              <div class="pill">2–3 kişilik startuplar</div>
+            </div>
+          </div>
 
-      <p><strong>Şu an beta mı?</strong></p>
-      <p>Şu anda erken erişim/beta aşamasındayız. Geri bildirimler ürünün yönünü belirleyecek.</p>
-    </section>
+          <div class="card">
+            <h3>Senaryo 2 – CI’ı sıfırdan yazmak istemeyenler</h3>
+            <p>
+              “GitHub Actions dökümantasyonundan pipeline yazmak” yerine,
+              üretim seviyesine yakın bir iskeleti alıp kendi ürününe uyarlamak istiyorsun.
+              GW Stack, tam bu noktada, “üzerinde oynayabileceğin sağlam bir temel” sunuyor.
+            </p>
+            <div class="pill-row">
+              <div class="pill">Tek kişilik SaaS kurucuları</div>
+              <div class="pill">Teknik lider + küçük ekipler</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRICING -->
+      <section id="pricing" class="section">
+        <div class="section-header">
+          <div class="section-kicker">Fiyatlandırma</div>
+          <h2 class="section-title">Erken erişim döneminde, “beraber şekillendirme” odaklı model.</h2>
+          <p class="section-subtitle">
+            Şu an GW Stack, erken erişim modunda. Ürün şekilleniyor, CI omurgası oturmuş durumda,
+            ödeme altyapısı ise ABD’ye yasal geçiş sonrasına planlanmış halde.
+          </p>
+        </div>
+
+        <div class="pricing-grid">
+          <div class="card">
+            <h3>Bugün (Erken Erişim)</h3>
+            <div class="price-tag">Form → Manuel teklif</div>
+            <div class="price-note">
+              Şu an için sabit bir “self-service pricing” yok. Erken erişim formunu dolduruyorsun,
+              ihtiyacına göre özel bir çalışma ve fiyatlama çıkıyor.
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">•</div>
+                <div>CI & release omurgasının birlikte kurgulanması.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">•</div>
+                <div>İhtiyaca göre ek danışmanlık / teknik destek.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Yakın gelecek (ABD sonrası)</h3>
+            <p>
+              Stripe veya benzeri bir sağlayıcı üzerinden,
+              net paketlere bölünmüş bir fiyatlandırma planı devreye alınacak:
+            </p>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item-bullet">1.</div>
+                <div>“Starter” – tek ürün, düşük trafik, basit CI.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">2.</div>
+                <div>“Team” – birden çok ortam, daha gelişmiş DoD gereksinimleri.</div>
+              </div>
+              <div class="list-item">
+                <div class="list-item-bullet">3.</div>
+                <div>“Custom” – büyük ekipler ve özel sözleşmeler için.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SSS -->
+      <section id="faq" class="section">
+        <div class="section-header">
+          <div class="section-kicker">SSS</div>
+          <h2 class="section-title">Sık sorulan sorular.</h2>
+        </div>
+
+        <div class="faq-grid">
+          <div class="faq-item">
+            <div class="faq-q">GW Stack tam olarak ürün mü, iskelet proje mi?</div>
+            <div class="faq-a">
+              Şu an ağırlıklı olarak bir iskelet proje ve referans omurga.
+              CI zincirini ve DoD üretim sürecini senin ürününe uyarlamak için,
+              kod seviyesinde beraber çalışma hedefleniyor.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Ödeme neden manuel? Neden Stripe yok?</div>
+            <div class="faq-a">
+              Stripe, Türkiye’de resmi olarak desteklenmiyor. Fake bir ABD hesabı açmak
+              hukuki ve operasyonel olarak riskli. Bu yüzden ödeme altyapısı,
+              ABD’ye yasal geçiş sonrası, tamamen gerçek bilgilerle entegre edilecek.
+              Şu anda manuel onboarding + teklif modeli tercih ediliyor.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Projeyi kendim kullanmak istiyorum, lisans modeli nedir?</div>
+            <div class="faq-a">
+              Erken erişim döneminde lisans ve kullanım koşulları birebir iletişimle netleştiriliyor.
+              Başvuru formunu doldurduğunda, senin senaryona göre detaylı dönüş alırsın.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Sadece CI pipeline’a mı bakıyorsunuz, yoksa ürün tarafına da destek var mı?</div>
+            <div class="faq-a">
+              Ana odak CI & release omurgası; ancak küçük ekipler için ürün, teknik tasarım
+              ve “ilk müşteri” yolculuğu da doğal olarak konuşuluyor.
+              Amaç, sadece pipeline kurmak değil, gelire giden yolu hızlandırmak.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <footer>
-      <p>© <span id="year"></span> GW Stack. Tüm hakları saklıdır.</p>
+      <div>GW Stack • FAZ-39 sonrası erken erişim dönemi</div>
+      <div style="margin-top:4px;">
+        Kaynak kodu görüntüle:
+        <a href="https://github.com/OzanAblak/gw_stack" target="_blank" rel="noopener noreferrer">
+          GitHub / gw_stack
+        </a>
+      </div>
     </footer>
   </div>
-
-  <script>
-    // Basit yıl güncelleme
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
 </body>
 </html>

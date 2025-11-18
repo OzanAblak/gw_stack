@@ -32,7 +32,6 @@ jobs:
           name: ci_artifacts
           path: ci_artifacts
 
-
       - name: Show DoD bundle
         run: |
           ls -R
@@ -50,8 +49,9 @@ jobs:
           echo "REL_BRANCH=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
           echo "REL_COMMIT=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
           echo "REL_URL=https://github.com/${{ github.repository }}/releases/tag/${{ env.REL_VERSION_PREFIX }}-${{ github.run_id }}" >> $GITHUB_ENV
+          echo "REL_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
 
-          # CI zinciri alanları (FAZ-44 Gate-1 için basit)
+          # CI zinciri alanları (basit seviye)
           echo "SMOKE_RUN_ID=${{ github.event.workflow_run.id }}" >> $GITHUB_ENV
           echo "SMOKE_STATUS=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_ENV
 

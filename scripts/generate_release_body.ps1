@@ -15,13 +15,14 @@ if (!(Test-Path $templatePath)) {
 # Template içeriğini tek seferde oku
 $content = Get-Content $templatePath -Raw
 
-# 1) Placeholder -> ENV değişkeni eşleşmeleri (GATE-1)
+# 1) Placeholder -> ENV değişkeni eşleşmeleri (GATE-1 + RELEASE_DATE)
 $mapping = @{
     "{TAG}"                  = "REL_TAG"
     "{RELEASE_TYPE}"         = "REL_TYPE"
     "{BRANCH}"               = "REL_BRANCH"
     "{COMMIT}"               = "REL_COMMIT"
     "{RELEASE_URL}"          = "REL_URL"
+    "{RELEASE_DATE}"         = "REL_DATE"
 
     "{SMOKE_RUN_ID}"         = "SMOKE_RUN_ID"
     "{SMOKE_STATUS}"         = "SMOKE_STATUS"
@@ -45,7 +46,16 @@ foreach ($placeholder in $mapping.Keys) {
     }
 }
 
-# 2) DoD artefaktlarından metin doldurma (GATE-2)
+# RELEASE_DATE fallback (env yoksa UTC şimdi)
+if ($content.Contains("{RELEASE_DATE}")) {
+    $relDateEnv = [Environment]::GetEnvironmentVariable("REL_DATE")
+    if ([string]::IsNullOrEmpty($relDateEnv)) {
+        $nowUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        $content = $content.Replace("{RELEASE_DATE}", $nowUtc)
+    }
+}
+
+# 2) DoD artefaktlarından metin doldurma (GATE-2 + GATE-5)
 $ciDir = Join-Path $repoRoot "ci_artifacts"
 
 if (Test-Path $ciDir) {
@@ -67,12 +77,43 @@ if (Test-Path $ciDir) {
         }
     }
 
-    # last_smoke.txt -> {LAST_SMOKE_DESC}
+    # last_smoke.txt -> {LAST_SMOKE_DESC} + SMOKE_RUN_ID/STATUS (GATE-5)
     $lastSmokeFile = Join-Path $ciDir "last_smoke.txt"
     if (Test-Path $lastSmokeFile) {
         $lastSmokeText = (Get-Content $lastSmokeFile -Raw).Trim()
         if (-not [string]::IsNullOrWhiteSpace($lastSmokeText)) {
+            # Açıklama alanını doldur
             $content = $content.Replace("{LAST_SMOKE_DESC}", $lastSmokeText)
+
+            # SMOKE_RUN_ID / SMOKE_STATUS türet (placeholder hâlâ varsa)
+            if ($content.Contains("{SMOKE_RUN_ID}") -or $content.Contains("{SMOKE_STATUS}")) {
+                $smokeRunId   = $null
+                $smokeStatus  = $null
+
+                # Örnek format: RUN=19265082131 completed success
+                if ($lastSmokeText -match "RUN=(\d+)") {
+                    $smokeRunId = $matches[1]
+                }
+
+                # Örnek: CONCLUSION=success veya metin içinde "success"/"failure"
+                if ($lastSmokeText -match "CONCLUSION=([A-Za-z]+)") {
+                    $smokeStatus = $matches[1]
+                }
+                elseif ($lastSmokeText -match "success") {
+                    $smokeStatus = "success"
+                }
+                elseif ($lastSmokeText -match "failure") {
+                    $smokeStatus = "failure"
+                }
+
+                if ($smokeRunId -and $content.Contains("{SMOKE_RUN_ID}")) {
+                    $content = $content.Replace("{SMOKE_RUN_ID}", $smokeRunId)
+                }
+
+                if ($smokeStatus -and $content.Contains("{SMOKE_STATUS}")) {
+                    $content = $content.Replace("{SMOKE_STATUS}", $smokeStatus.ToUpper())
+                }
+            }
         }
     }
 
@@ -87,8 +128,6 @@ if (Test-Path $ciDir) {
 }
 
 # 3) Dostça fallback'ler (GATE-3)
-# Eğer artefakt gelmediyse veya ENV hiç dolmadıysa, placeholder'ları insan okunur metne çevir
-
 if ($content.Contains("{DOD_TXT_DESC}")) {
     $content = $content.Replace(
         "{DOD_TXT_DESC}",

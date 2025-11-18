@@ -3,7 +3,7 @@
 - Tür: {RELEASE_TYPE}           <!-- Pre-release / Release -->
 - Branch: `{BRANCH}`
 - Commit: `{COMMIT}`            <!-- kısa SHA veya tam SHA -->
-- Yayın tarihi: {RELEASE_DATE}
+- Yayın tarihi: 2025-11-18T14:35:05Z
 
 ---
 

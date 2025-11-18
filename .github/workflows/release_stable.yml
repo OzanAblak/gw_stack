@@ -1,0 +1,87 @@
+name: release_stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name to release (e.g. v0.1.1)"
+        required: true
+        type: string
+
+jobs:
+  release_stable:
+    name: release_stable
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag_name }}
+
+      - name: Export release env (stable)
+        id: export_env_stable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REL_TAG="${{ github.event.inputs.tag_name }}"
+          REL_TYPE="Stable"
+          REL_BRANCH="$(git rev-parse --abbrev-ref HEAD || echo unknown-branch)"
+          REL_COMMIT="$(git rev-parse HEAD)"
+          REL_URL="https://github.com/${{ github.repository }}/releases/tag/${REL_TAG}"
+          REL_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          echo "REL_TAG=${REL_TAG}" >> $GITHUB_ENV
+          echo "REL_TYPE=${REL_TYPE}" >> $GITHUB_ENV
+          echo "REL_BRANCH=${REL_BRANCH}" >> $GITHUB_ENV
+          echo "REL_COMMIT=${REL_COMMIT}" >> $GITHUB_ENV
+          echo "REL_URL=${REL_URL}" >> $GITHUB_ENV
+          echo "REL_DATE=${REL_DATE}" >> $GITHUB_ENV
+
+          echo "SMOKE_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "SMOKE_STATUS=UNKNOWN" >> $GITHUB_ENV
+          echo "POST_SMOKE_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "POST_SMOKE_STATUS=UNKNOWN" >> $GITHUB_ENV
+          echo "RELEASE_DRAFT_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "RELEASE_DRAFT_STATUS=UNKNOWN" >> $GITHUB_ENV
+          echo "SITE_CHECK_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "SITE_CHECK_STATUS=UNKNOWN" >> $GITHUB_ENV
+          echo "CI_PIPELINE_STATUS=STABLE_PIPELINE" >> $GITHUB_ENV
+          echo "DOD_STATUS=UNKNOWN" >> $GITHUB_ENV
+
+      - name: Generate release body (stable)
+        shell: pwsh
+        run: ./scripts/generate_release_body.ps1
+
+      - name: Create or update stable release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          echo "Using REL_TAG=${REL_TAG}"
+          echo "Using REL_COMMIT=${REL_COMMIT}"
+          echo "Using REL_TYPE=${REL_TYPE}"
+          echo "Using REL_URL=${REL_URL}"
+          echo "Using REL_DATE=${REL_DATE}"
+
+          if gh release view "${REL_TAG}" >/dev/null 2>&1; then
+            echo "Updating existing stable release ${REL_TAG}"
+            gh release edit "${REL_TAG}" \
+              --latest \
+              --draft=false \
+              --prerelease=false \
+              --notes-file "docs/faz-43/release_body_generated.md"
+          else
+            echo "Creating new stable release ${REL_TAG}"
+            gh release create "${REL_TAG}" \
+              --latest \
+              --target "${REL_COMMIT}" \
+              --notes-file "docs/faz-43/release_body_generated.md"
+          fi

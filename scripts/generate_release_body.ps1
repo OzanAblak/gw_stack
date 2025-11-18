@@ -15,7 +15,7 @@ if (!(Test-Path $templatePath)) {
 # Template içeriğini tek seferde oku
 $content = Get-Content $templatePath -Raw
 
-# 1) Placeholder -> ENV değişkeni eşleşmeleri
+# 1) Placeholder -> ENV değişkeni eşleşmeleri (GATE-1)
 $mapping = @{
     "{TAG}"                  = "REL_TAG"
     "{RELEASE_TYPE}"         = "REL_TYPE"
@@ -36,7 +36,6 @@ $mapping = @{
     "{DOD_STATUS}"           = "DOD_STATUS"
 }
 
-# Env dolu olanları placeholder ile değiştir
 foreach ($placeholder in $mapping.Keys) {
     $envName = $mapping[$placeholder]
     $value   = [Environment]::GetEnvironmentVariable($envName)
@@ -85,6 +84,34 @@ if (Test-Path $ciDir) {
             $content = $content.Replace("{LAST_SHA256_DESC}", $lastShaText)
         }
     }
+}
+
+# 3) Dostça fallback'ler (GATE-3)
+# Eğer artefakt gelmediyse veya ENV hiç dolmadıysa, placeholder'ları insan okunur metne çevir
+
+if ($content.Contains("{DOD_TXT_DESC}")) {
+    $content = $content.Replace(
+        "{DOD_TXT_DESC}",
+        "Bu release için DoD.txt artefaktı bulunamadı veya CI tarafından üretilmedi."
+    )
+}
+
+if ($content.Contains("{LAST_SMOKE_DESC}")) {
+    $content = $content.Replace(
+        "{LAST_SMOKE_DESC}",
+        "Bu release için son smoke koşusuna ait detaylı özet bilgisi bulunamadı."
+    )
+}
+
+if ($content.Contains("{LAST_SHA256_DESC}")) {
+    $content = $content.Replace(
+        "{LAST_SHA256_DESC}",
+        "Bu release için SHA256 özet bilgisi (last_sha256.txt) bulunamadı."
+    )
+}
+
+if ($content.Contains("{DOD_STATUS}")) {
+    $content = $content.Replace("{DOD_STATUS}", "UNKNOWN")
 }
 
 # Output klasörü yoksa oluştur

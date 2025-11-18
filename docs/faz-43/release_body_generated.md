@@ -44,16 +44,16 @@ Ek meta:
 - Sabit DoD satırı:  
   `PASS 19090=200 38888=200 E2E=200`
 
-- DoD sonucu: **{DOD_STATUS}** <!-- PASS / FAIL / PARTIAL -->
+- DoD sonucu: **UNKNOWN** <!-- PASS / FAIL / PARTIAL -->
 
 DoD artefakt paketi:
 
 - `DoD.txt`  
-  - İçerik özeti: {DOD_TXT_DESC} <!-- örn. “DoD check sonuçlarının tam logu” -->
+  - İçerik özeti: Bu release için DoD.txt artefaktı bulunamadı veya CI tarafından üretilmedi. <!-- örn. “DoD check sonuçlarının tam logu” -->
 - `last_smoke.txt`  
-  - İçerik özeti: {LAST_SMOKE_DESC} <!-- örn. “En son smoke run çıktıları + tarih” -->
+  - İçerik özeti: Bu release için son smoke koşusuna ait detaylı özet bilgisi bulunamadı. <!-- örn. “En son smoke run çıktıları + tarih” -->
 - `last_sha256.txt`  
-  - İçerik özeti: {LAST_SHA256_DESC} <!-- örn. “Artefakt SHA256 hash değerleri” -->
+  - İçerik özeti: Bu release için SHA256 özet bilgisi (last_sha256.txt) bulunamadı. <!-- örn. “Artefakt SHA256 hash değerleri” -->
 
 > Not: Bu bölüm, CI’nin gerçekten DoD’yi geçtiğini tek bakışta göstermeli.  
 > Otomasyon tarafında bu alanlar doğrudan DoD artefaktlarından doldurulabilir.

@@ -1,15 +1,24 @@
-# GW Stack — Release Notları — {TAG}
+﻿# GW Stack — Release Notları — v0.0.0-UNKNOWN
 
-- Tür: {RELEASE_TYPE}           <!-- Pre-release / Release -->
-- Branch: `{BRANCH}`
-- Commit: `{COMMIT}`            <!-- kısa SHA veya tam SHA -->
-- Yayın tarihi: 2025-11-18T14:35:05Z
+- Tür: Pre-release           <!-- Pre-release / Release -->
+- Branch: `unknown-branch`
+- Commit: `unknown-commit`            <!-- kısa SHA veya tam SHA -->
+- Yayın tarihi: 2025-11-18T16:13:02Z
 
 ---
 
 ## 1) Özet
 
-{CHANGE_SUMMARY_SHORT}
+- 946d8fb FAZ-45: resolve CI metadata for release_draft
+- 828b475 FAZ-44: document plan and version history
+- 9c80807 FAZ-44: GATE-5 derive smoke meta from last_smoke
+- 8bfa6f0 FAZ-44: GATE-3 friendly fallbacks for DoD placeholders
+- e0a997c FAZ-44: GATE-2 fill DoD section from ci_artifacts
+- f478172 FAZ-44: make ci_artifacts optional in release_draft
+- be5af59 FAZ-44: wire release_draft to generate_release_body
+- 09393aa FAZ-42: landing hero + early access form
+- 842b9ff FAZ-41: fix release_draft artifact download
+- c895ae2 FAZ-41: update gitignore for local scratch and plans
 
 - Öne çıkan değişiklikler:
   - {HIGHLIGHT_1}
@@ -23,19 +32,19 @@
 
 ## 2) CI Zinciri Özeti
 
-Kaynak: `{BRANCH}` üzerinde çalışan CI zinciri.
+Kaynak: `unknown-branch` üzerinde çalışan CI zinciri.
 
 | Adım          | Run ID                | Sonuç          | Not |
 | ------------- | --------------------- | -------------- | --- |
-| smoke         | {SMOKE_RUN_ID}        | {SMOKE_STATUS} |     |
-| post_smoke    | {POST_SMOKE_RUN_ID}   | {POST_SMOKE_STATUS} | |
-| release_draft | {RELEASE_DRAFT_RUN_ID}| {RELEASE_DRAFT_STATUS} | |
-| site_check    | {SITE_CHECK_RUN_ID}   | {SITE_CHECK_STATUS} | |
+| smoke         | N/A        | UNKNOWN |     |
+| post_smoke    | N/A   | UNKNOWN | |
+| release_draft | N/A| UNKNOWN | |
+| site_check    | N/A   | UNKNOWN | |
 
 Ek meta:
 
-- Pipeline durumu: {CI_PIPELINE_STATUS} <!-- örn. Tüm adımlar PASS -->
-- Kaynak commit: `{COMMIT}` (`{BRANCH}`)
+- Pipeline durumu: UNKNOWN <!-- örn. Tüm adımlar PASS -->
+- Kaynak commit: `unknown-commit` (`unknown-branch`)
 
 ---
 
@@ -49,11 +58,11 @@ Ek meta:
 DoD artefakt paketi:
 
 - `DoD.txt`  
-  - İçerik özeti: Bu release için DoD.txt artefaktı bulunamadı veya CI tarafından üretilmedi. <!-- örn. “DoD check sonuçlarının tam logu” -->
+  - İçerik özeti: Bu release iÃ§in DoD.txt artefaktÄ± bulunamadÄ± veya CI tarafÄ±ndan Ã¼retilmedi. <!-- örn. “DoD check sonuçlarının tam logu” -->
 - `last_smoke.txt`  
-  - İçerik özeti: Bu release için son smoke koşusuna ait detaylı özet bilgisi bulunamadı. <!-- örn. “En son smoke run çıktıları + tarih” -->
+  - İçerik özeti: Bu release iÃ§in son smoke koÅŸusuna ait detaylÄ± Ã¶zet bilgisi bulunamadÄ±. <!-- örn. “En son smoke run çıktıları + tarih” -->
 - `last_sha256.txt`  
-  - İçerik özeti: Bu release için SHA256 özet bilgisi (last_sha256.txt) bulunamadı. <!-- örn. “Artefakt SHA256 hash değerleri” -->
+  - İçerik özeti: Bu release iÃ§in SHA256 Ã¶zet bilgisi (last_sha256.txt) bulunamadÄ±. <!-- örn. “Artefakt SHA256 hash değerleri” -->
 
 > Not: Bu bölüm, CI’nin gerçekten DoD’yi geçtiğini tek bakışta göstermeli.  
 > Otomasyon tarafında bu alanlar doğrudan DoD artefaktlarından doldurulabilir.
@@ -126,9 +135,9 @@ Bu release ile zemin hazırlayan konular:
 
 ## 7) Teknik Meta
 
-- Release URL: {RELEASE_URL}
-- Tag: `{TAG}`
-- Hedef commit: `{COMMIT}` (branch: `{BRANCH}`)
+- Release URL: https://example.invalid
+- Tag: `v0.0.0-UNKNOWN`
+- Hedef commit: `unknown-commit` (branch: `unknown-branch`)
 - CI zinciri kök run: {ROOT_RUN_ID} <!-- opsiyonel, istersen boş bırak -->
 - Oluşturan: {AUTHOR}
 - Kaynak faz: **FAZ-{FAZ_NO} — {FAZ_NAME}**

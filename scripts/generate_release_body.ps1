@@ -1,162 +1,196 @@
+param(
+    [string]$TemplatePath = "",
+    [string]$OutputPath = ""
+)
+
 $ErrorActionPreference = "Stop"
 
-# Script klasörü ve repo kökünü bul
+function Get-EnvOrDefault([string]$name, [string]$default) {
+    $v = [System.Environment]::GetEnvironmentVariable($name)
+    if ($null -ne $v -and $v.Trim() -ne "") {
+        return $v
+    }
+    return $default
+}
+
+# Script ve repo kökü
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot  = Split-Path -Parent $scriptDir
 
-# Template ve output yollarını repo köküne göre ayarla
-$templatePath = Join-Path $repoRoot "docs/faz-43/release_body_template.md"
-$outputPath   = Join-Path $repoRoot "docs/faz-43/release_body_generated.md"
-
-if (!(Test-Path $templatePath)) {
-    throw "Template not found: $templatePath"
+if (-not $TemplatePath -or $TemplatePath.Trim() -eq "") {
+    $TemplatePath = Join-Path $repoRoot "docs/faz-43/release_body_template.md"
+}
+if (-not $OutputPath -or $OutputPath.Trim() -eq "") {
+    $OutputPath = Join-Path $repoRoot "docs/faz-43/release_body_generated.md"
 }
 
-# Template içeriğini tek seferde oku
-$content = Get-Content $templatePath -Raw
-
-# 1) Placeholder -> ENV değişkeni eşleşmeleri (GATE-1 + RELEASE_DATE)
-$mapping = @{
-    "{TAG}"                  = "REL_TAG"
-    "{RELEASE_TYPE}"         = "REL_TYPE"
-    "{BRANCH}"               = "REL_BRANCH"
-    "{COMMIT}"               = "REL_COMMIT"
-    "{RELEASE_URL}"          = "REL_URL"
-    "{RELEASE_DATE}"         = "REL_DATE"
-
-    "{SMOKE_RUN_ID}"         = "SMOKE_RUN_ID"
-    "{SMOKE_STATUS}"         = "SMOKE_STATUS"
-    "{POST_SMOKE_RUN_ID}"    = "POST_SMOKE_RUN_ID"
-    "{POST_SMOKE_STATUS}"    = "POST_SMOKE_STATUS"
-    "{RELEASE_DRAFT_RUN_ID}" = "RELEASE_DRAFT_RUN_ID"
-    "{RELEASE_DRAFT_STATUS}" = "RELEASE_DRAFT_STATUS"
-    "{SITE_CHECK_RUN_ID}"    = "SITE_CHECK_RUN_ID"
-    "{SITE_CHECK_STATUS}"    = "SITE_CHECK_STATUS"
-    "{CI_PIPELINE_STATUS}"   = "CI_PIPELINE_STATUS"
-
-    "{DOD_STATUS}"           = "DOD_STATUS"
+if (-not (Test-Path $TemplatePath)) {
+    throw "Template file not found: $TemplatePath"
 }
 
-foreach ($placeholder in $mapping.Keys) {
-    $envName = $mapping[$placeholder]
-    $value   = [Environment]::GetEnvironmentVariable($envName)
+# Template içeriğini oku
+$content = Get-Content -Path $TemplatePath -Raw -Encoding UTF8
 
-    if (![string]::IsNullOrEmpty($value)) {
-        $content = $content.Replace($placeholder, $value)
-    }
-}
+# ENV tabanlı alanlar
+$tag            = Get-EnvOrDefault "REL_TAG" "v0.0.0-UNKNOWN"
+$relType        = Get-EnvOrDefault "REL_TYPE" "Pre-release"
+$branch         = Get-EnvOrDefault "REL_BRANCH" "unknown-branch"
+$commit         = Get-EnvOrDefault "REL_COMMIT" "unknown-commit"
+$relUrl         = Get-EnvOrDefault "REL_URL" "https://example.invalid"
+$relDate        = Get-EnvOrDefault "REL_DATE" ([DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))
 
-# RELEASE_DATE fallback (env yoksa UTC şimdi)
-if ($content.Contains("{RELEASE_DATE}")) {
-    $relDateEnv = [Environment]::GetEnvironmentVariable("REL_DATE")
-    if ([string]::IsNullOrEmpty($relDateEnv)) {
-        $nowUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
-        $content = $content.Replace("{RELEASE_DATE}", $nowUtc)
-    }
-}
+$smokeRunId     = Get-EnvOrDefault "SMOKE_RUN_ID" "N/A"
+$smokeStatus    = Get-EnvOrDefault "SMOKE_STATUS" "UNKNOWN"
+$postRunId      = Get-EnvOrDefault "POST_SMOKE_RUN_ID" "N/A"
+$postStatus     = Get-EnvOrDefault "POST_SMOKE_STATUS" "UNKNOWN"
+$releaseRunId   = Get-EnvOrDefault "RELEASE_DRAFT_RUN_ID" "N/A"
+$releaseStatus  = Get-EnvOrDefault "RELEASE_DRAFT_STATUS" "UNKNOWN"
+$siteRunId      = Get-EnvOrDefault "SITE_CHECK_RUN_ID" "N/A"
+$siteStatus     = Get-EnvOrDefault "SITE_CHECK_STATUS" "UNKNOWN"
+$pipelineStatus = Get-EnvOrDefault "CI_PIPELINE_STATUS" "UNKNOWN"
+$dodStatusEnv   = Get-EnvOrDefault "DOD_STATUS" "UNKNOWN"
 
-# 2) DoD artefaktlarından metin doldurma (GATE-2 + GATE-5)
-$ciDir = Join-Path $repoRoot "ci_artifacts"
+# DoD artefaktları
+$ciArtifactsDir   = Join-Path $repoRoot "ci_artifacts"
 
-if (Test-Path $ciDir) {
-    # DoD.txt -> {DOD_TXT_DESC}
-    $dodFile = Join-Path $ciDir "DoD.txt"
-    if (Test-Path $dodFile) {
-        $dodText = (Get-Content $dodFile -Raw).Trim()
-        if (-not [string]::IsNullOrWhiteSpace($dodText)) {
-            $content = $content.Replace("{DOD_TXT_DESC}", $dodText)
+$dodTxtDesc       = ""
+$lastSmokeDesc    = ""
+$lastSha256Desc   = ""
+$dodStatusDerived = $null
 
-            # Eğer env'den DOD_STATUS gelmediyse, basit bir türetme yap
-            $dodStatusEnv = [Environment]::GetEnvironmentVariable("DOD_STATUS")
-            if ([string]::IsNullOrEmpty($dodStatusEnv) -and $content.Contains("{DOD_STATUS}")) {
-                $status = "UNKNOWN"
-                if ($dodText -match "PASS") { $status = "PASS" }
-                elseif ($dodText -match "FAIL") { $status = "FAIL" }
-                $content = $content.Replace("{DOD_STATUS}", $status)
-            }
+if (Test-Path $ciArtifactsDir) {
+    $dodPath = Join-Path $ciArtifactsDir "DoD.txt"
+    if (Test-Path $dodPath) {
+        $dodTxtDesc = (Get-Content -Path $dodPath -Raw -Encoding UTF8).Trim()
+        if ($dodTxtDesc -match "PASS" -and -not ($dodTxtDesc -match "FAIL")) {
+            $dodStatusDerived = "PASS"
+        }
+        elseif ($dodTxtDesc -match "FAIL") {
+            $dodStatusDerived = "FAIL"
         }
     }
 
-    # last_smoke.txt -> {LAST_SMOKE_DESC} + SMOKE_RUN_ID/STATUS (GATE-5)
-    $lastSmokeFile = Join-Path $ciDir "last_smoke.txt"
-    if (Test-Path $lastSmokeFile) {
-        $lastSmokeText = (Get-Content $lastSmokeFile -Raw).Trim()
-        if (-not [string]::IsNullOrWhiteSpace($lastSmokeText)) {
-            # Açıklama alanını doldur
-            $content = $content.Replace("{LAST_SMOKE_DESC}", $lastSmokeText)
+    $lastSmokePath = Join-Path $ciArtifactsDir "last_smoke.txt"
+    if (Test-Path $lastSmokePath) {
+        $lastSmokeDesc = (Get-Content -Path $lastSmokePath -Raw -Encoding UTF8).Trim()
 
-            # SMOKE_RUN_ID / SMOKE_STATUS türet (placeholder hâlâ varsa)
-            if ($content.Contains("{SMOKE_RUN_ID}") -or $content.Contains("{SMOKE_STATUS}")) {
-                $smokeRunId   = $null
-                $smokeStatus  = $null
+        $runMatch = [regex]::Match($lastSmokeDesc, "RUN=(\d+)")
+        if ($runMatch.Success) {
+            $smokeRunId = $runMatch.Groups[1].Value
+        }
 
-                # Örnek format: RUN=19265082131 completed success
-                if ($lastSmokeText -match "RUN=(\d+)") {
-                    $smokeRunId = $matches[1]
-                }
-
-                # Örnek: CONCLUSION=success veya metin içinde "success"/"failure"
-                if ($lastSmokeText -match "CONCLUSION=([A-Za-z]+)") {
-                    $smokeStatus = $matches[1]
-                }
-                elseif ($lastSmokeText -match "success") {
-                    $smokeStatus = "success"
-                }
-                elseif ($lastSmokeText -match "failure") {
-                    $smokeStatus = "failure"
-                }
-
-                if ($smokeRunId -and $content.Contains("{SMOKE_RUN_ID}")) {
-                    $content = $content.Replace("{SMOKE_RUN_ID}", $smokeRunId)
-                }
-
-                if ($smokeStatus -and $content.Contains("{SMOKE_STATUS}")) {
-                    $content = $content.Replace("{SMOKE_STATUS}", $smokeStatus.ToUpper())
-                }
-            }
+        $conclusionMatch = [regex]::Match($lastSmokeDesc, "CONCLUSION=([A-Za-z]+)")
+        if ($conclusionMatch.Success) {
+            $smokeStatus = $conclusionMatch.Groups[1].Value
+        }
+        elseif ($lastSmokeDesc -match "(?i)success") {
+            $smokeStatus = "success"
+        }
+        elseif ($lastSmokeDesc -match "(?i)fail") {
+            $smokeStatus = "failure"
         }
     }
 
-    # last_sha256.txt -> {LAST_SHA256_DESC}
-    $lastShaFile = Join-Path $ciDir "last_sha256.txt"
-    if (Test-Path $lastShaFile) {
-        $lastShaText = (Get-Content $lastShaFile -Raw).Trim()
-        if (-not [string]::IsNullOrWhiteSpace($lastShaText)) {
-            $content = $content.Replace("{LAST_SHA256_DESC}", $lastShaText)
-        }
+    $lastShaPath = Join-Path $ciArtifactsDir "last_sha256.txt"
+    if (Test-Path $lastShaPath) {
+        $lastSha256Desc = (Get-Content -Path $lastShaPath -Raw -Encoding UTF8).Trim()
     }
 }
 
-# 3) Dostça fallback'ler (GATE-3)
-if ($content.Contains("{DOD_TXT_DESC}")) {
-    $content = $content.Replace(
-        "{DOD_TXT_DESC}",
-        "Bu release için DoD.txt artefaktı bulunamadı veya CI tarafından üretilmedi."
-    )
+# DOD_STATUS kararı (ENV öncelikli, sonra türetilen, en son UNKNOWN)
+if ($dodStatusEnv -ne "UNKNOWN") {
+    $dodStatus = $dodStatusEnv
+}
+elseif ($dodStatusDerived) {
+    $dodStatus = $dodStatusDerived
+}
+else {
+    $dodStatus = "UNKNOWN"
 }
 
-if ($content.Contains("{LAST_SMOKE_DESC}")) {
-    $content = $content.Replace(
-        "{LAST_SMOKE_DESC}",
-        "Bu release için son smoke koşusuna ait detaylı özet bilgisi bulunamadı."
-    )
+# GATE-2: Otomatik değişiklik özeti (CHANGE_SUMMARY_SHORT)
+$changeSummary = ""
+try {
+    Push-Location $repoRoot
+    $logOutput = & git log --pretty=format:"- %h %s" -n 10 2>$null
+    Pop-Location
+
+    if ($logOutput) {
+        if ($logOutput -is [System.Array]) {
+            $changeSummary = ($logOutput -join "`n")
+        }
+        else {
+            $changeSummary = [string]$logOutput
+        }
+    }
+    else {
+        $changeSummary = "Son 10 commit için otomatik özet üretilemedi veya kayıt bulunamadı."
+    }
+}
+catch {
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        $changeSummary = "Otomatik değişiklik özeti oluşturulurken bir hata oluştu: $($_.Exception.Message)"
+    }
+    else {
+        $changeSummary = "Git komutu bulunamadığı için otomatik değişiklik özeti üretilemedi."
+    }
 }
 
-if ($content.Contains("{LAST_SHA256_DESC}")) {
-    $content = $content.Replace(
-        "{LAST_SHA256_DESC}",
-        "Bu release için SHA256 özet bilgisi (last_sha256.txt) bulunamadı."
-    )
+if (-not $changeSummary -or $changeSummary.Trim() -eq "") {
+    $changeSummary = "Bu pre-release için otomatik değişiklik özeti boş döndü."
 }
 
-if ($content.Contains("{DOD_STATUS}")) {
-    $content = $content.Replace("{DOD_STATUS}", "UNKNOWN")
+# Artefakt fallback metinleri
+if (-not $dodTxtDesc) {
+    $dodTxtDesc = "Bu release için DoD.txt artefaktı bulunamadı veya CI tarafından üretilmedi."
+}
+if (-not $lastSmokeDesc) {
+    $lastSmokeDesc = "Bu release için son smoke koşusuna ait detaylı özet bilgisi bulunamadı."
+}
+if (-not $lastSha256Desc) {
+    $lastSha256Desc = "Bu release için SHA256 özet bilgisi (last_sha256.txt) bulunamadı."
 }
 
-# Output klasörü yoksa oluştur
-New-Item -ItemType Directory -Path (Split-Path -Parent $outputPath) -Force | Out-Null
+# Placeholder → değer eşlemesi
+$replacements = @{
+    "{TAG}"                   = $tag
+    "{RELEASE_TYPE}"          = $relType
+    "{BRANCH}"                = $branch
+    "{COMMIT}"                = $commit
+    "{RELEASE_URL}"           = $relUrl
+    "{RELEASE_DATE}"          = $relDate
+
+    "{SMOKE_RUN_ID}"          = $smokeRunId
+    "{SMOKE_STATUS}"          = $smokeStatus
+    "{POST_SMOKE_RUN_ID}"     = $postRunId
+    "{POST_SMOKE_STATUS}"     = $postStatus
+    "{RELEASE_DRAFT_RUN_ID}"  = $releaseRunId
+    "{RELEASE_DRAFT_STATUS}"  = $releaseStatus
+    "{SITE_CHECK_RUN_ID}"     = $siteRunId
+    "{SITE_CHECK_STATUS}"     = $siteStatus
+    "{CI_PIPELINE_STATUS}"    = $pipelineStatus
+    "{DOD_STATUS}"            = $dodStatus
+
+    "{DOD_TXT_DESC}"          = $dodTxtDesc
+    "{LAST_SMOKE_DESC}"       = $lastSmokeDesc
+    "{LAST_SHA256_DESC}"      = $lastSha256Desc
+
+    "{CHANGE_SUMMARY_SHORT}"  = $changeSummary
+}
+
+# Replace işlemi
+foreach ($key in $replacements.Keys) {
+    $value = $replacements[$key]
+    if ($null -eq $value) { $value = "" }
+    $content = $content.Replace($key, [string]$value)
+}
 
 # Çıktıyı yaz
-Set-Content -Path $outputPath -Value $content
+$outputDir = Split-Path -Parent $OutputPath
+if (-not (Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+}
 
-Write-Output "REL_BODY_OK path=$outputPath"
+Set-Content -Path $OutputPath -Value $content -Encoding UTF8
+
+Write-Host ("REL_BODY_OK path={0}" -f $OutputPath)

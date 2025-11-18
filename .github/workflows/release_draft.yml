@@ -25,11 +25,13 @@ jobs:
           fetch-depth: 0
 
       - name: Download CI artifacts (DoD bundle)
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
           name: ci_artifacts
           path: ci_artifacts
+
 
       - name: Show DoD bundle
         run: |

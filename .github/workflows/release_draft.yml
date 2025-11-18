@@ -2,19 +2,18 @@ name: release_draft
 
 on:
   workflow_run:
-    workflows: ["post_smoke"]
+    workflows:
+      - post_smoke
     types:
       - completed
 
-permissions:
-  contents: write
-  actions: read
-
 jobs:
   release_draft:
-    if: github.event.workflow_run.conclusion == 'success'
+    name: release_draft
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     env:
       REL_VERSION_PREFIX: v0.1.1-draft
 
@@ -25,80 +24,115 @@ jobs:
           fetch-depth: 0
 
       - name: Download CI artifacts (DoD bundle)
-        continue-on-error: true
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          run-id: ${{ github.event.workflow_run.id }}
           name: ci_artifacts
           path: ci_artifacts
 
-      - name: Show DoD bundle
+      - name: Show DoD bundle (if present)
+        if: ${{ hashFiles('ci_artifacts/**') != '' }}
+        shell: bash
         run: |
-          ls -R
-          echo "=== DoD.txt ==="
-          cat ci_artifacts/DoD.txt || true
-          echo "=== last_smoke.txt ==="
-          cat ci_artifacts/last_smoke.txt || true
-          echo "=== last_sha256.txt ==="
-          cat ci_artifacts/last_sha256.txt || true
+          echo "ci_artifacts contents:"
+          ls -R ci_artifacts || true
+          echo ""
+          if [ -f "ci_artifacts/DoD.txt" ]; then
+            echo "===== DoD.txt ====="
+            cat ci_artifacts/DoD.txt
+          fi
+          if [ -f "ci_artifacts/last_smoke.txt" ]; then
+            echo "===== last_smoke.txt ====="
+            cat ci_artifacts/last_smoke.txt
+          fi
+          if [ -f "ci_artifacts/last_sha256.txt" ]; then
+            echo "===== last_sha256.txt ====="
+            cat ci_artifacts/last_sha256.txt
+          fi
 
       - name: Export release env
+        id: export_env
+        shell: bash
         run: |
-          echo "REL_TAG=${{ env.REL_VERSION_PREFIX }}-${{ github.run_id }}" >> $GITHUB_ENV
-          echo "REL_TYPE=Pre-release" >> $GITHUB_ENV
-          echo "REL_BRANCH=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
-          echo "REL_COMMIT=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
-          echo "REL_URL=https://github.com/${{ github.repository }}/releases/tag/${{ env.REL_VERSION_PREFIX }}-${{ github.run_id }}" >> $GITHUB_ENV
-          echo "REL_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+          set -euo pipefail
 
-          # CI zinciri alanları (basit seviye)
-          echo "SMOKE_RUN_ID=${{ github.event.workflow_run.id }}" >> $GITHUB_ENV
-          echo "SMOKE_STATUS=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_ENV
+          REL_TAG="${REL_VERSION_PREFIX}-${GITHUB_RUN_ID}"
+          REL_TYPE="Pre-release"
+          REL_BRANCH="${{ github.event.workflow_run.head_branch }}"
+          REL_COMMIT="${{ github.event.workflow_run.head_sha }}"
+          REL_URL="https://github.com/${{ github.repository }}/releases/tag/${REL_TAG}"
+          REL_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-          echo "POST_SMOKE_RUN_ID=${{ github.event.workflow_run.id }}" >> $GITHUB_ENV
-          echo "POST_SMOKE_STATUS=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_ENV
+          echo "REL_TAG=${REL_TAG}" >> $GITHUB_ENV
+          echo "REL_TYPE=${REL_TYPE}" >> $GITHUB_ENV
+          echo "REL_BRANCH=${REL_BRANCH}" >> $GITHUB_ENV
+          echo "REL_COMMIT=${REL_COMMIT}" >> $GITHUB_ENV
+          echo "REL_URL=${REL_URL}" >> $GITHUB_ENV
+          echo "REL_DATE=${REL_DATE}" >> $GITHUB_ENV
 
-          echo "RELEASE_DRAFT_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+          # default CI meta (GATE-1 bunları override edecek)
+          echo "SMOKE_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "SMOKE_STATUS=UNKNOWN" >> $GITHUB_ENV
+          echo "POST_SMOKE_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "POST_SMOKE_STATUS=UNKNOWN" >> $GITHUB_ENV
+
+          echo "RELEASE_DRAFT_RUN_ID=${GITHUB_RUN_ID}" >> $GITHUB_ENV
           echo "RELEASE_DRAFT_STATUS=success" >> $GITHUB_ENV
-
-          echo "SITE_CHECK_RUN_ID=" >> $GITHUB_ENV
-          echo "SITE_CHECK_STATUS=" >> $GITHUB_ENV
-
+          echo "SITE_CHECK_RUN_ID=N/A" >> $GITHUB_ENV
+          echo "SITE_CHECK_STATUS=UNKNOWN" >> $GITHUB_ENV
           echo "CI_PIPELINE_STATUS=ALL PASS" >> $GITHUB_ENV
-
           echo "DOD_STATUS=PASS" >> $GITHUB_ENV
+
+      - name: Resolve CI metadata (smoke/post_smoke)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./scripts/resolve_ci_meta.ps1 -Branch "${{ github.event.workflow_run.head_branch }}" -OutputPath "ci_meta.env"
+          Get-Content "ci_meta.env" | ForEach-Object { $_ } | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Generate release body (FAZ-44)
         shell: pwsh
         run: ./scripts/generate_release_body.ps1
 
       - name: Create or update pre-release
+        shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          TAG="$REL_TAG"
+          set -euo pipefail
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists, editing..."
-            gh release edit "$TAG" \
+          echo "Using REL_TAG=${REL_TAG}"
+          echo "Using REL_COMMIT=${REL_COMMIT}"
+          echo "Using REL_TYPE=${REL_TYPE}"
+          echo "Using REL_URL=${REL_URL}"
+          echo "Using REL_DATE=${REL_DATE}"
+          echo "SMOKE_RUN_ID=${SMOKE_RUN_ID}"
+          echo "SMOKE_STATUS=${SMOKE_STATUS}"
+          echo "POST_SMOKE_RUN_ID=${POST_SMOKE_RUN_ID}"
+          echo "POST_SMOKE_STATUS=${POST_SMOKE_STATUS}"
+
+          if gh release view "${REL_TAG}" >/dev/null 2>&1; then
+            echo "Updating existing pre-release ${REL_TAG}"
+            gh release edit "${REL_TAG}" \
               --prerelease \
-              --notes-file docs/faz-43/release_body_generated.md
+              --notes-file "docs/faz-43/release_body_generated.md"
           else
-            echo "Creating release $TAG"
-            gh release create "$TAG" \
-              --target "$REL_BRANCH" \
+            echo "Creating new pre-release ${REL_TAG}"
+            gh release create "${REL_TAG}" \
               --prerelease \
-              --title "$TAG" \
-              --notes-file docs/faz-43/release_body_generated.md
+              --target "${REL_COMMIT}" \
+              --notes-file "docs/faz-43/release_body_generated.md"
           fi
 
-          # DoD bundle'ı asset olarak yükle
-          if [ -f ci_artifacts/DoD.txt ]; then
-            gh release upload "$TAG" ci_artifacts/DoD.txt --clobber
+          if [ -f "ci_artifacts/DoD.txt" ]; then
+            gh release upload "${REL_TAG}" "ci_artifacts/DoD.txt" --clobber
           fi
-          if [ -f ci_artifacts/last_smoke.txt ]; then
-            gh release upload "$TAG" ci_artifacts/last_smoke.txt --clobber
+          if [ -f "ci_artifacts/last_smoke.txt" ]; then
+            gh release upload "${REL_TAG}" "last_smoke.txt" --clobber || gh release upload "${REL_TAG}" "ci_artifacts/last_smoke.txt" --clobber
           fi
-          if [ -f ci_artifacts/last_sha256.txt ]; then
-            gh release upload "$TAG" ci_artifacts/last_sha256.txt --clobber
+          if [ -f "ci_artifacts/last_sha256.txt" ]; then
+            gh release upload "${REL_TAG}" "ci_artifacts/last_sha256.txt" --clobber
           fi

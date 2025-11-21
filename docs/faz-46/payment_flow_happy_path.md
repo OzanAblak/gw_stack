@@ -276,5 +276,41 @@ Kabul kriteri:
 
 &nbsp; - “İlk ödeme → aktif abonelik” akışının gerçekten uçtan uca ve güvenle çalışması.
 
+================================================
+5) IMPLEMENTASYON DURUMU (FAZ-46 — BACKEND STUB)
+================================================
+
+Durum özeti:
+- billing_api (FastAPI) servisi altında aşağıdaki endpoint’ler stub olarak çalışıyor:
+  - GET /api/billing/subscription
+  - POST /api/billing/checkout/start
+  - GET /api/billing/checkout/status
+
+Senaryo eşleşmeleri:
+- Senaryo 1 — İlk ödeme (yeni kullanıcı, başarılı):
+  - POST /api/billing/checkout/start body:
+    - planCode="starter"
+  - Dönen paymentAttemptId: pay_example_success
+  - GET /api/billing/checkout/status?paymentAttemptId=pay_example_success
+    - paymentAttempt.status = "succeeded"
+    - subscription.status = "active"
+
+- Senaryo 2 — Başarısız ilk ödeme (kart reddedildi):
+  - POST /api/billing/checkout/start body:
+    - planCode="fail_card"
+  - Dönen paymentAttemptId: pay_example_failed
+  - GET /api/billing/checkout/status?paymentAttemptId=pay_example_failed
+    - paymentAttempt.status = "failed"
+    - paymentAttempt.errorCode = "CARD_DECLINED"
+    - subscription.status = "incomplete"
+
+Not:
+- Bu davranışlar FAZ-46 kapsamında stub’dur:
+  - Gerçek ödeme sağlayıcısı entegrasyonu ve kalıcı veri katmanı
+    ileriki fazlarda uygulanacaktır.
+- Bu doküman, hem manuel testte hem de ileride yazılacak otomatik
+  testlerde referans alınacaktır.
+
+
 
 

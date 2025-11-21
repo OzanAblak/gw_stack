@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 app = FastAPI(title="GW Stack Billing API")
 
@@ -27,11 +28,25 @@ EXAMPLE_SUBSCRIPTION = {
 }
 
 
+# Checkout başlangıcı için örnek stub response.
+EXAMPLE_CHECKOUT_RESPONSE = {
+    "checkoutUrl": "https://payment-provider.example/checkout/session_example",
+    "paymentAttemptId": "pay_example_123",
+    "subscriptionId": "sub_example",
+}
+
+
+class CheckoutStartRequest(BaseModel):
+    planCode: str
+    successUrl: str | None = None
+    cancelUrl: str | None = None
+
+
 @app.get("/api/billing/subscription")
 async def get_subscription():
     """
-    Payment API contract dokümanındaki GET /api/billing/subscription
-    endpoint’ine karşılık gelen ilk stub implementasyonu.
+    Payment API contract dokümanındaki
+    GET /api/billing/subscription endpoint’ine karşılık gelen ilk stub implementasyonu.
 
     Şimdilik her zaman örnek bir 'active' abonelik döner.
     İleride:
@@ -50,3 +65,33 @@ async def get_subscription():
     # )
 
     return EXAMPLE_SUBSCRIPTION
+
+
+@app.post("/api/billing/checkout/start")
+async def checkout_start(payload: CheckoutStartRequest):
+    """
+    Payment API contract dokümanındaki
+    POST /api/billing/checkout/start endpoint'inin ilk stub implementasyonu.
+
+    Şimdilik:
+    - Request içinden sadece planCode alınıyor (starter/pro vs.)
+    - Her zaman sabit bir checkoutUrl + paymentAttemptId döndürüyoruz.
+
+    İleride:
+    - planCode üzerinden gerçek PLAN lookup yapılacak,
+    - Gerçek ödeme sağlayıcısında checkout oturumu oluşturulacak,
+    - paymentAttempt + subscription kayıtları domain modeline göre saklanacak.
+    """
+
+    # Basit bir kontrol: şimdilik planCode boşsa 400 dönelim.
+    if not payload.planCode:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "PLAN_CODE_REQUIRED",
+                "message": "Bir plan seçmeniz gerekiyor.",
+                "details": None,
+            },
+        )
+
+    return EXAMPLE_CHECKOUT_RESPONSE

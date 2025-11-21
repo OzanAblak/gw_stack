@@ -2,380 +2,708 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>GW Stack – CI & Release Omurganı 1 Günde Ayağa Kaldır</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta
-    name="description"
-    content="GW Stack, küçük ekiplere üretim seviyesinde CI & release zinciri sağlayan hafif bir iskelet projedir. Smoke, post-smoke, release draft ve DoD çıktıları tek omurgada birleşir."
-  />
+  <title>GW Stack – Geliştirici Odaklı Gateway & Tooling</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!--
+    GW Stack Landing
+    FAZ-47 / GATE-2: billingApiClient HTTP helper eklendi.
+  -->
   <style>
-    body {
+    :root {
+      --bg: #050816;
+      --bg-alt: #0b1020;
+      --card-bg: #0f172a;
+      --border-subtle: #1f2937;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --accent-strong: #22c55e;
+      --text: #e5e7eb;
+      --text-soft: #9ca3af;
+      --danger: #f97373;
+      --radius-xl: 18px;
+      --radius-lg: 12px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.75);
+      --shadow-pill: 0 10px 30px rgba(15, 23, 42, 0.7);
+      --pill-bg: rgba(15, 23, 42, 0.9);
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-      color: #111;
-      background-color: #fafafa;
+      padding: 0;
     }
 
-    a {
-      color: inherit;
-    }
-
-    header {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      background: #ffffffaa;
-      backdrop-filter: blur(10px);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    header .inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-
-    header .logo {
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-    }
-
-    header nav a {
-      font-size: 0.88rem;
-      text-decoration: none;
-      opacity: 0.8;
-      margin-left: 1rem;
-    }
-
-    main {
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #020617 100%);
+      color: var(--text);
       min-height: 100vh;
     }
 
-    footer {
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
-      padding: 1.5rem 1.5rem 2rem;
-      font-size: 0.8rem;
-      opacity: 0.7;
-    }
-
-    footer .inner {
-      max-width: 960px;
+    .page {
+      max-width: 1160px;
       margin: 0 auto;
+      padding: 32px 16px 72px;
     }
 
-    @media (max-width: 640px) {
-      header .inner {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
 
-      header nav a {
-        margin-left: 0;
-        margin-right: 1rem;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #38bdf8, #1d4ed8);
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.25),
+        0 12px 25px rgba(37, 99, 235, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-mark::after {
+      content: "";
+      position: absolute;
+      inset: 20%;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.6);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.8);
+    }
+
+    .logo-text-main {
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+    }
+
+    .logo-text-sub {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+    }
+
+    .header-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(
+        110deg,
+        rgba(56, 189, 248, 0.12),
+        rgba(34, 197, 94, 0.2)
+      );
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      box-shadow: var(--shadow-pill);
+      font-size: 0.75rem;
+    }
+
+    .header-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-strong);
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.5fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 920px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
       }
+    }
+
+    .hero {
+      background: radial-gradient(circle at top left, #0b1120, var(--bg-alt));
+      border-radius: 26px;
+      padding: 26px 24px 24px;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      font-size: 0.72rem;
+      margin-bottom: 14px;
+      color: var(--text-soft);
+    }
+
+    .hero-tagline-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #e0f2fe;
+      font-weight: 500;
+      font-size: 0.7rem;
+    }
+
+    .hero-title {
+      font-size: 2.3rem;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+
+    .hero-title span.highlight {
+      background: linear-gradient(120deg, #38bdf8, #22c55e);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+      max-width: 460px;
+      margin-bottom: 18px;
+    }
+
+    .hero-subtitle strong {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .hero-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .metric-pill {
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      color: var(--text-soft);
+    }
+
+    .metric-pill strong {
+      color: #e5e7eb;
+      font-size: 0.8rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .btn-primary {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 18px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: linear-gradient(120deg, #38bdf8, #22c55e);
+      color: #020617;
+      box-shadow: 0 20px 40px rgba(34, 197, 94, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      padding: 9px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.89);
+      color: var(--text-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-secondary span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .hero-footnote {
+      font-size: 0.7rem;
+      color: var(--text-soft);
+    }
+
+    .hero-footnote span {
+      color: #e5e7eb;
+    }
+
+    .hero-bg-orbit {
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 220px;
+      height: 220px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.55), transparent 65%);
+      opacity: 0.6;
+      filter: blur(1px);
+    }
+
+    .hero-bg-orbit-inner {
+      position: absolute;
+      inset: 30px;
+      border-radius: 999px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      backdrop-filter: blur(14px);
+      background: radial-gradient(circle, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.4));
+    }
+
+    .hero-bg-orbit-inner span {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.3);
+      top: 15%;
+      right: 18%;
+    }
+
+    /* Right column */
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
+      border-radius: var(--radius-xl);
+      padding: 16px 14px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.9);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .card-tag {
+      font-size: 0.7rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #e0f2fe;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: grid;
+      gap: 7px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .feature-list li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .feature-bullet {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      margin-top: 4px;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .plan-card {
+      display: grid;
+      grid-template-columns: 2fr 2fr;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 920px) {
+      .plan-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .plan-block {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.99));
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 11px 12px;
+    }
+
+    .plan-label {
+      font-size: 0.72rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .plan-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .plan-price {
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-soft);
+    }
+
+    .timeline {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      display: grid;
+      gap: 6px;
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timeline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .timeline-dot.muted {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .timeline-label {
+      min-width: 82px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(148, 163, 184, 0.85);
+    }
+
+    .timeline-text {
+      flex: 1;
+    }
+
+    footer {
+      margin-top: 24px;
+      font-size: 0.7rem;
+      color: var(--text-soft);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .footer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-badge span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent-strong);
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="inner">
-      <div class="logo">GW STACK</div>
-      <nav>
-        <a href="#hero">Ürün</a>
-        <a href="#early-access">Erken erişim</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <!-- == HERO + EARLY ACCESS (GW Stack) == -->
-    <section
-      id="hero"
-      style="
-        padding: 4rem 1.5rem 2rem;
-        max-width: 960px;
-        margin: 0 auto;
-      "
-    >
-      <div
-        style="
-          font-size: 0.85rem;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          opacity: 0.7;
-          margin-bottom: 0.5rem;
-        "
-      >
-        GW Stack · Continuous Delivery Guardrail
+  <div class="page">
+    <header>
+      <div class="logo">
+        <div class="logo-mark"></div>
+        <div>
+          <div class="logo-text-main">GW STACK</div>
+          <div class="logo-text-sub">Gateway · Planner · Tooling</div>
+        </div>
       </div>
-
-      <h1
-        style="
-          font-size: 2.4rem;
-          line-height: 1.2;
-          margin: 0 0 1rem;
-        "
-      >
-        Küçük takımlar için<br />
-        <span style="white-space: nowrap;">“push → yayına hazır”</span>
-        otomatik kapı
-      </h1>
-
-      <p
-        style="
-          font-size: 1.05rem;
-          line-height: 1.6;
-          margin: 0 0 1.5rem;
-          max-width: 40rem;
-        "
-      >
-        GW Stack, her <code>git push</code> sonrasında
-        <strong>smoke → post_smoke → release_draft → site_check</strong>
-        zincirini otomatik çalıştırarak, sadece
-        <strong>Definition of Done’ı geçen commit’lerin</strong> release
-        draft’ına girmesini sağlar. Böylece “şu an neyi yayınlayabilirim?”
-        sorusunun cevabı her zaman nettir.
-      </p>
-
-      <ul
-        style="
-          font-size: 0.98rem;
-          line-height: 1.6;
-          margin: 0 0 1.75rem;
-          padding-left: 1.1rem;
-        "
-      >
-        <li>
-          Her commit için <strong>DoD.txt</strong> ile kanıtlanabilir release
-          kriterleri
-        </li>
-        <li>
-          Başarısız adımlarda <strong>otomatik blokaj</strong> ve net hata
-          bağlamı
-        </li>
-        <li>
-          <strong>GitHub Actions</strong> üzerinde çalışan, mevcut workflow’lara
-          saygılı mimari
-        </li>
-      </ul>
-
-      <div
-        style="
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.75rem;
-          align-items: center;
-          margin-bottom: 0.5rem;
-        "
-      >
-        <a
-          href="#early-access"
-          style="
-            display: inline-block;
-            padding: 0.75rem 1.4rem;
-            border-radius: 999px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            background: #111;
-            color: #fff;
-          "
-        >
-          Erken erişim talep et
-        </a>
-        <span style="font-size: 0.9rem; opacity: 0.7;">
-          10–50 kişilik ürün & mühendislik ekipleri için tasarlandı.
-        </span>
+      <div class="header-pill">
+        <span class="header-pill-dot"></span>
+        <span>Early access altyapısı hazır · Payment tasarım + stub tamam</span>
       </div>
+    </header>
 
-      <p
-        style="
-          font-size: 0.85rem;
-          opacity: 0.7;
-          margin: 0;
-        "
-      >
-        Her zaman
-        <strong>“PASS 19090=200 38888=200 E2E=200”</strong> seviyesini koruyan
-        bir yayın hattı kurmak istiyorsan, formu doldur.
-      </p>
-    </section>
-
-    <section
-      id="early-access"
-      style="
-        padding: 2.5rem 1.5rem 4rem;
-        max-width: 960px;
-        margin: 0 auto;
-      "
-    >
-      <hr
-        style="
-          border: none;
-          border-top: 1px solid rgba(0, 0, 0, 0.06);
-          margin-bottom: 2rem;
-        "
-      />
-
-      <h2
-        style="
-          font-size: 1.6rem;
-          margin: 0 0 0.75rem;
-        "
-      >
-        Erken erişim listesine katıl
-      </h2>
-
-      <p
-        style="
-          font-size: 0.98rem;
-          line-height: 1.5;
-          margin: 0 0 1.5rem;
-          max-width: 36rem;
-        "
-      >
-        E-posta bırak, <strong>kendi CI hattına</strong> uygun GW Stack
-        entegrasyon rehberi ve ilk davet dalgasına öncelikli erişim al.
-        İstersen ücretsiz, kısa bir keşif görüşmesi de planlayabiliriz.
-      </p>
-
-      <form
-        method="post"
-        action="#"
-        style="
-          max-width: 480px;
-          display: grid;
-          gap: 0.9rem;
-        "
-      >
-        <div>
-          <label
-            for="email"
-            style="
-              display: block;
-              font-size: 0.85rem;
-              font-weight: 600;
-              margin-bottom: 0.25rem;
-            "
-          >
-            İş e-postan
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            placeholder="ornek@firma.com"
-            style="
-              width: 100%;
-              padding: 0.6rem 0.75rem;
-              border-radius: 0.5rem;
-              border: 1px solid rgba(0, 0, 0, 0.15);
-              font-size: 0.95rem;
-            "
-          />
+    <main>
+      <!-- SOL: HERO -->
+      <section class="hero">
+        <div class="hero-bg-orbit">
+          <div class="hero-bg-orbit-inner">
+            <span></span>
+          </div>
         </div>
 
-        <div>
-          <label
-            for="role"
-            style="
-              display: block;
-              font-size: 0.85rem;
-              font-weight: 600;
-              margin-bottom: 0.25rem;
-            "
-          >
-            Rolün
-          </label>
-          <input
-            id="role"
-            name="role"
-            type="text"
-            placeholder="CTO, Tech Lead, DevOps, PM..."
-            style="
-              width: 100%;
-              padding: 0.6rem 0.75rem;
-              border-radius: 0.5rem;
-              border: 1px solid rgba(0, 0, 0, 0.15);
-              font-size: 0.95rem;
-            "
-          />
+        <div class="hero-tagline">
+          <span class="hero-tagline-pill">Shipping gateway tools — not slide decks</span>
+          <span>CI, smoke, release, logging tek akışta</span>
         </div>
 
-        <div>
-          <label
-            for="context"
-            style="
-              display: block;
-              font-size: 0.85rem;
-              font-weight: 600;
-              margin-bottom: 0.25rem;
-            "
-          >
-            Kısa konteks (opsiyonel)
-          </label>
-          <textarea
-            id="context"
-            name="context"
-            rows="3"
-            placeholder="Takım büyüklüğü, mevcut CI durumu, en büyük release acın..."
-            style="
-              width: 100%;
-              padding: 0.6rem 0.75rem;
-              border-radius: 0.5rem;
-              border: 1px solid rgba(0, 0, 0, 0.15);
-              font-size: 0.95rem;
-              resize: vertical;
-            "
-          ></textarea>
-        </div>
+        <h1 class="hero-title">
+          Gateway ve test
+          <span class="highlight">“yan proje”</span>
+          değil,
+          <span class="highlight">ürün</span> olsun.
+        </h1>
 
-        <button
-          type="submit"
-          style="
-            margin-top: 0.5rem;
-            padding: 0.7rem 1.3rem;
-            border-radius: 999px;
-            border: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            background: #111;
-            color: #fff;
-          "
-        >
-          Listeye katıl
-        </button>
-
-        <p
-          style="
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin: 0.5rem 0 0;
-          "
-        >
-          Spam yok. Sadece ürün gelişmeleri ve erken erişim çağrıları
-          gönderilecektir.
+        <p class="hero-subtitle">
+          GW Stack, kendi trafik akışını <strong>kendisi gözleyen</strong>,
+          <strong>release sürecine kendisi konuşan</strong> bir gateway & tooling seti.
+          Kod tarafında hızlanırken, <strong>“deploy ettik mi, biliyor muyuz?”</strong>
+          sorusunu otomatiğe bağlıyor.
         </p>
-      </form>
-    </section>
-  </main>
 
-  <footer>
-    <div class="inner">
-      GW Stack · CI & release omurgası ·
-      <span style="white-space: nowrap;">PASS 19090=200 38888=200 E2E=200</span>
-      seviyesini korumaya odaklıdır.
-    </div>
-  </footer>
+        <div class="hero-metrics">
+          <div class="metric-pill">
+            <strong>Payment domain tasarımı</strong>
+            <span>stub + happy-path planı ile bitti</span>
+          </div>
+          <div class="metric-pill">
+            <strong>FAZ-46</strong>
+            <span>billing_api + error codes + entegrasyon planı</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn-primary" type="button" onclick="alert('Early access başvurusu henüz public değil. (Stub UI)');">
+            Early access için sıraya gir
+            <span>→</span>
+          </button>
+          <button class="btn-secondary" type="button" onclick="document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });">
+            <span class="dot"></span>
+            Nasıl çalışıyor?
+          </button>
+        </div>
+
+        <div class="hero-footnote">
+          <span>Önce kendi CI’nı ikna eden gateway, sonra müşterini.</span>  
+          Payment tarafında şu anda <strong>tasarım + stub seviyesinde</strong> ilerliyoruz.
+        </div>
+      </section>
+
+      <!-- SAĞ: PLANLAR + AKIŞ -->
+      <aside class="side-panel">
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">Starter plan · FAZ-47 hedefi</div>
+            <span class="card-tag">Payment stub</span>
+          </div>
+          <div class="plan-card">
+            <div class="plan-block">
+              <div class="plan-label">Plan</div>
+              <div class="plan-name">Starter</div>
+              <div class="plan-price">Gateway + planner + temel smoke seti</div>
+              <div class="pill-row">
+                <span class="pill">Tek ortamdan tüm trafik görünümü</span>
+                <span class="pill">Release &amp; smoke entegrasyonu</span>
+                <span class="pill">Payment-ready domain &amp; contract</span>
+              </div>
+            </div>
+            <div class="plan-block">
+              <div class="plan-label">Yakında</div>
+              <div class="plan-name">Teams &amp; Scale</div>
+              <div class="plan-price">Çoklu environment, role-based görünürlük</div>
+              <div class="pill-row">
+                <span class="pill">Team dashboard</span>
+                <span class="pill">Gelişmiş alerting</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">Akış: code → deploy → billing</div>
+            <span class="card-tag">How GW Stack thinks</span>
+          </div>
+          <div class="timeline" id="how-it-works">
+            <div class="timeline-row">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Code</div>
+              <div class="timeline-text">
+                Branch push → smoke → release pipeline.
+              </div>
+            </div>
+            <div class="timeline-row">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Gateway</div>
+              <div class="timeline-text">
+                Gateway, health &amp; trafik durumunu release’e geribildirim olarak taşır.
+              </div>
+            </div>
+            <div class="timeline-row">
+              <div class="timeline-dot muted"></div>
+              <div class="timeline-label">Billing</div>
+              <div class="timeline-text">
+                FAZ-46 ile payment domain + stub tamamlandı.
+                FAZ-47 ile Landing → billing_api bağlanarak
+                <strong>checkout akışı</strong> devreye alınacak.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">Payment tarafında bugün neredeyiz?</div>
+            <span class="card-tag">Design + stub</span>
+          </div>
+          <ul class="feature-list">
+            <li>
+              <span class="feature-bullet"></span>
+              <span>Domain modeli, API contract ve happy-path test planı <strong>dokümante</strong>.</span>
+            </li>
+            <li>
+              <span class="feature-bullet"></span>
+              <span><code>/api/billing/checkout/start</code> ve <code>/status</code> için <strong>working stub</strong> hazır.</span>
+            </li>
+            <li>
+              <span class="feature-bullet"></span>
+              <span><code>PLAN_CODE_REQUIRED</code>, <code>CARD_DECLINED</code> vb. error code’lar <strong>standardize</strong>.</span>
+            </li>
+            <li>
+              <span class="feature-bullet"></span>
+              <span>Sonraki fazlarda landing &amp; planner UI bu stub’lara bağlanarak gerçek akışa yaklaşacak.</span>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="footer-badge">
+        <span class="dot"></span>
+        <span>FAZ-46: Payment domain &amp; billing_api stub tamam · FAZ-47: Landing entegrasyonu</span>
+      </div>
+      <div>
+        <span>GW Stack • Build once, observe always.</span>
+      </div>
+    </footer>
+  </div>
+
+  <!--
+    FAZ-47 / GATE-2
+    Billing API HTTP helper: Landing tarafı, payment stub ile konuşmak için
+    window.billingApiClient üzerinden startCheckout / getCheckoutStatus kullanacak.
+  -->
+  <script>
+    (function () {
+      // İlk aşamada sabit; ileride build/ENV üzerinden beslenecek.
+      const BILLING_API_BASE_URL = 'http://127.0.0.1:19100';
+
+      async function startCheckout(planCode) {
+        const response = await fetch(BILLING_API_BASE_URL + '/api/billing/checkout/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            planCode: planCode,
+            // Stub aşamasında bile gerçek hayata benzer dursun diye success/cancel URL'leri gönderiyoruz
+            successUrl: window.location.origin + '/checkout-success',
+            cancelUrl: window.location.origin + '/checkout-cancel'
+          })
+        });
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = null;
+        }
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: data
+        };
+      }
+
+      async function getCheckoutStatus(paymentAttemptId) {
+        const url =
+          BILLING_API_BASE_URL +
+          '/api/billing/checkout/status?paymentAttemptId=' +
+          encodeURIComponent(paymentAttemptId);
+
+        const response = await fetch(url);
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = null;
+        }
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: data
+        };
+      }
+
+      // Global export (Landing UI buradan kullanacak)
+      window.billingApiClient = {
+        startCheckout: startCheckout,
+        getCheckoutStatus: getCheckoutStatus
+      };
+    })();
+  </script>
 </body>
 </html>

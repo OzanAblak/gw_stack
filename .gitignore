@@ -25,3 +25,11 @@ site/index_faz40_backup.html.html
 local/
 # Local plans (not versioned)
 plans/
+
+# Python / FastAPI artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/

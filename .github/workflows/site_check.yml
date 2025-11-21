@@ -7,6 +7,8 @@ on:
       - feat/site-landing
   workflow_dispatch:
 
+env:
+  BILLING_API_HEALTH_URL: ${{ secrets.BILLING_API_HEALTH_URL }}
 
 jobs:
   site-check:
@@ -23,3 +25,10 @@ jobs:
 
       - name: Ensure site index exists
         run: test -f site/index.html
+
+      - name: Billing API health (optional)
+        if: env.BILLING_API_HEALTH_URL != ''
+        run: |
+          echo "Checking billing API health at ${BILLING_API_HEALTH_URL}/health"
+          curl -fS "${BILLING_API_HEALTH_URL}/health"
+

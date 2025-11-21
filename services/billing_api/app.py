@@ -31,7 +31,7 @@ EXAMPLE_SUBSCRIPTION_ACTIVE = {
 # Başarısız ilk ödeme sonrası, abonelik tamamlanmamış durumda.
 EXAMPLE_SUBSCRIPTION_INCOMPLETE = {
     "id": "sub_example_incomplete",
-    "status": "incomplete",  # ilk ödeme tamamlanamamış
+    "status": "incomplete",  # ilk ödeme tamamlanmamış
     "plan": {
         "id": "plan_1",
         "code": "starter",
@@ -103,16 +103,33 @@ class CheckoutStartRequest(BaseModel):
 
 
 @app.get("/api/billing/subscription")
-async def get_subscription():
+async def get_subscription(testNoSubscription: bool = False):
     """
     GET /api/billing/subscription
-    Şimdilik her zaman örnek bir 'active' abonelik döner.
 
-    İleride:
-    - Kullanıcının kimliğini auth katmanından okuyacağız,
-    - Gerçek SUBSCRIPTION tablosundan/servisinden veriyi çekeceğiz,
-    - Aboneliği olmayan kullanıcıya 404 döneceğiz.
+    Şu anda iki durumu stub'luyoruz:
+
+    1) Varsayılan (abonelik var):
+       - testNoSubscription=false (veya parametre verilmemiş)
+       - 200 OK + EXAMPLE_SUBSCRIPTION_ACTIVE
+
+    2) Aboneliği olmayan kullanıcı (Senaryo 3 testi için):
+       - testNoSubscription=true
+       - 404 + SUBSCRIPTION_NOT_FOUND hatası
     """
+
+    if testNoSubscription:
+        # Senaryo 3: aboneliği olmayan kullanıcı için test amacıyla 404 döner.
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "SUBSCRIPTION_NOT_FOUND",
+                "message": "Bu hesap için aktif bir abonelik bulunamadı.",
+                "details": None,
+            },
+        )
+
+    # Senaryo 1 / normal durumda aktif abonelik örneği.
     return {"subscription": EXAMPLE_SUBSCRIPTION_ACTIVE}
 
 
@@ -131,11 +148,6 @@ async def checkout_start(payload: CheckoutStartRequest):
        - planCode = "fail_card"
        - Response: EXAMPLE_CHECKOUT_RESPONSE_FAILED
        Bu ID, checkout/status endpoint'inde 'failed' paymentAttempt ile eşleşir.
-
-    İleride:
-    - planCode üzerinden gerçek PLAN lookup yapılacak,
-    - Gerçek ödeme sağlayıcısında checkout oturumu oluşturulacak,
-    - paymentAttempt + subscription kayıtları domain modeline göre saklanacak.
     """
 
     if not payload.planCode:
@@ -174,10 +186,6 @@ async def checkout_status(paymentAttemptId: str):
 
     3) Diğer tüm IDs:
        - 404 + PAYMENT_ATTEMPT_NOT_FOUND
-
-    İleride:
-    - paymentAttemptId üzerinden PAYMENT_ATTEMPT tablosu/servisi sorgulanacak,
-    - İlgili SUBSCRIPTION kaydı ile ilişkilendirilecek.
     """
 
     if paymentAttemptId == EXAMPLE_PAYMENT_ATTEMPT_SUCCESS["id"]:

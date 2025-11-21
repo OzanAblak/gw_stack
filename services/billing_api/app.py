@@ -5,6 +5,29 @@ app = FastAPI(title="GW Stack Billing API")
 
 
 # ---------------------------------------------------------------------------
+# HEALTH CHECK ENDPOINT
+# ---------------------------------------------------------------------------
+
+@app.get("/health")
+async def health():
+    """
+    Basit servis sağlık kontrolü.
+
+    İleride:
+    - site_check veya başka health-check mekanizmaları bu endpoint'i kullanabilir.
+    """
+    return {
+        "service": "billing_api",
+        "status": "ok",
+        "version": "0.1.0-stub",
+        "checks": {
+            "subscription_stub": "ok",
+            "checkout_stub": "ok",
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # ÖRNEK SUBSCRIPTION NESNELERİ
 # ---------------------------------------------------------------------------
 

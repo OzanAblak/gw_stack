@@ -7,6 +7,7 @@
   <!--
     GW Stack Landing
     FAZ-47 / GATE-2: billingApiClient HTTP helper eklendi.
+    FAZ-47 / GATE-3: Starter plan için stub checkout butonu bağlandı.
   -->
   <style>
     :root {
@@ -522,8 +523,12 @@
         </div>
 
         <div class="hero-actions">
-          <button class="btn-primary" type="button" onclick="alert('Early access başvurusu henüz public değil. (Stub UI)');">
-            Early access için sıraya gir
+          <button
+            class="btn-primary"
+            type="button"
+            onclick="window.__gwStartCheckoutStub && window.__gwStartCheckoutStub('starter');"
+          >
+            Starter plan için stub checkout başlat
             <span>→</span>
           </button>
           <button class="btn-secondary" type="button" onclick="document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });">
@@ -642,6 +647,9 @@
     FAZ-47 / GATE-2
     Billing API HTTP helper: Landing tarafı, payment stub ile konuşmak için
     window.billingApiClient üzerinden startCheckout / getCheckoutStatus kullanacak.
+
+    FAZ-47 / GATE-3
+    Starter plan butonu, stub checkout başlatıyor (planCode='starter').
   -->
   <script>
     (function () {
@@ -698,11 +706,55 @@
         };
       }
 
+      // Stub demo: Starter plan için basit checkout akışı
+      async function demoStartCheckout(planCode) {
+        if (!planCode) {
+          alert('Plan seçilmedi (stub: planCode boş).');
+          return;
+        }
+
+        try {
+          const result = await window.billingApiClient.startCheckout(planCode);
+
+          if (!result.ok) {
+            const code =
+              result.data &&
+              result.data.detail &&
+              result.data.detail.code;
+
+            alert(
+              'Checkout hata (HTTP ' +
+                result.status +
+                '): ' +
+                (code || 'bilinmeyen hata (stub)')
+            );
+            return;
+          }
+
+          const attemptId =
+            result.data && result.data.paymentAttemptId;
+          const subId =
+            result.data && result.data.subscriptionId;
+
+          alert(
+            'Checkout başlatıldı (stub):\n\n' +
+              'Plan: ' + planCode + '\n' +
+              'PaymentAttemptId: ' + (attemptId || '(yok)') + '\n' +
+              'SubscriptionId: ' + (subId || '(yok)')
+          );
+        } catch (err) {
+          alert('Checkout çağrısı sırasında beklenmeyen hata (stub).');
+        }
+      }
+
       // Global export (Landing UI buradan kullanacak)
       window.billingApiClient = {
         startCheckout: startCheckout,
         getCheckoutStatus: getCheckoutStatus
       };
+
+      // Hero butonu için stub handler
+      window.__gwStartCheckoutStub = demoStartCheckout;
     })();
   </script>
 </body>

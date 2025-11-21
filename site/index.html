@@ -9,6 +9,7 @@
     FAZ-47 / GATE-2: billingApiClient HTTP helper eklendi.
     FAZ-47 / GATE-3: Starter plan için stub checkout butonu bağlandı.
     FAZ-47 / GATE-4+5: checkout + status çağrıları ile success / fail_card senaryoları oynatılıyor.
+    FAZ-47 / GATE-6+7: Checkout sonucu paneli + abonelik durumu paneli eklendi.
   -->
   <style>
     :root {
@@ -214,7 +215,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     .btn-primary,
@@ -303,6 +304,56 @@
       box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.3);
       top: 15%;
       right: 18%;
+    }
+
+    /* Checkout status panel */
+
+    .checkout-status-panel {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-lg);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 0.78rem;
+    }
+
+    .checkout-status-title {
+      font-weight: 500;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .checkout-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.9);
+    }
+
+    .checkout-status-body {
+      white-space: pre-line;
+      color: var(--text-soft);
+    }
+
+    .checkout-status-panel[data-state="success"] {
+      border-color: rgba(34, 197, 94, 0.7);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+    }
+
+    .checkout-status-panel[data-state="success"] .checkout-status-dot {
+      background: var(--accent-strong);
+    }
+
+    .checkout-status-panel[data-state="error"] {
+      border-color: rgba(248, 113, 113, 0.7);
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.2);
+    }
+
+    .checkout-status-panel[data-state="error"] .checkout-status-dot {
+      background: var(--danger);
     }
 
     /* Right column */
@@ -456,6 +507,23 @@
       flex: 1;
     }
 
+    .subscription-status {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      padding: 6px 0 8px;
+    }
+
+    .subscription-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .subscription-actions .btn-ghost {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+    }
+
     footer {
       margin-top: 24px;
       font-size: 0.7rem;
@@ -566,6 +634,16 @@
           <span>Önce kendi CI’nı ikna eden gateway, sonra müşterini.</span>
           Payment tarafında şu anda <strong>tasarım + stub seviyesinde</strong> ilerliyoruz.
         </div>
+
+        <div class="checkout-status-panel" id="checkout-status-panel">
+          <div class="checkout-status-title">
+            <span class="checkout-status-dot"></span>
+            <span>Checkout durumu (stub)</span>
+          </div>
+          <div class="checkout-status-body" id="checkout-status-body">
+            Henüz checkout başlatılmadı.
+          </div>
+        </div>
       </section>
 
       <!-- SAĞ: PLANLAR + AKIŞ -->
@@ -654,6 +732,32 @@
             </li>
           </ul>
         </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">Abonelik durumu (stub)</div>
+            <span class="card-tag">SUBSCRIPTION</span>
+          </div>
+          <div class="subscription-status" id="subscription-status-body">
+            Henüz sorgu yapılmadı.
+          </div>
+          <div class="subscription-actions">
+            <button
+              class="btn-ghost"
+              type="button"
+              onclick="window.__gwCheckSubscriptionStub && window.__gwCheckSubscriptionStub(false);"
+            >
+              Aktif abonelik örneği
+            </button>
+            <button
+              class="btn-ghost"
+              type="button"
+              onclick="window.__gwCheckSubscriptionStub && window.__gwCheckSubscriptionStub(true);"
+            >
+              Abonelik yok senaryosu
+            </button>
+          </div>
+        </section>
       </aside>
     </main>
 
@@ -671,7 +775,7 @@
   <!--
     FAZ-47 / GATE-2
     Billing API HTTP helper: Landing tarafı, payment stub ile konuşmak için
-    window.billingApiClient üzerinden startCheckout / getCheckoutStatus kullanacak.
+    window.billingApiClient üzerinden startCheckout / getCheckoutStatus / getSubscription kullanıyor.
 
     FAZ-47 / GATE-3
     Starter plan butonu, stub checkout başlatıyor (planCode='starter').
@@ -679,6 +783,9 @@
     FAZ-47 / GATE-4+5
     Checkout sonrası paymentAttemptId ile /status çağrısı yapılıp
     success / fail_card senaryoları kullanıcıya özetleniyor.
+
+    FAZ-47 / GATE-6+7
+    Checkout sonucu paneli + abonelik durumu paneli üzerinden gösteriliyor.
   -->
   <script>
     (function () {
@@ -735,10 +842,48 @@
         };
       }
 
+      async function getSubscription(testNoSubscription) {
+        let url = BILLING_API_BASE_URL + '/api/billing/subscription';
+        if (testNoSubscription) {
+          url += '?testNoSubscription=true';
+        }
+
+        const response = await fetch(url);
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = null;
+        }
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: data
+        };
+      }
+
+      function updateCheckoutStatusPanel(state, text) {
+        const panel = document.getElementById('checkout-status-panel');
+        const body = document.getElementById('checkout-status-body');
+        if (!panel || !body) {
+          return;
+        }
+
+        panel.removeAttribute('data-state');
+        if (state) {
+          panel.setAttribute('data-state', state);
+        }
+
+        body.textContent = text;
+      }
+
       // Global export (Landing UI buradan kullanacak)
       window.billingApiClient = {
         startCheckout: startCheckout,
-        getCheckoutStatus: getCheckoutStatus
+        getCheckoutStatus: getCheckoutStatus,
+        getSubscription: getSubscription
       };
 
       // Stub demo: checkout + status ile success / fail_card akışını özetler
@@ -747,6 +892,11 @@
           alert('Plan seçilmedi (stub: planCode boş).');
           return;
         }
+
+        updateCheckoutStatusPanel(
+          null,
+          'Checkout başlatılıyor...\nPlan: ' + planCode
+        );
 
         try {
           // 1) Checkout başlat
@@ -757,13 +907,15 @@
             const code = detail && detail.code;
             const msg = detail && detail.message;
 
-            alert(
+            const summary =
               'Checkout hata (HTTP ' +
-                result.status +
-                '): ' +
-                (code ? code + ' - ' : '') +
-                (msg || 'bilinmeyen hata (stub)')
-            );
+              result.status +
+              '): ' +
+              (code ? code + ' - ' : '') +
+              (msg || 'bilinmeyen hata (stub)');
+
+            updateCheckoutStatusPanel('error', summary);
+            alert(summary);
             return;
           }
 
@@ -773,9 +925,11 @@
             result.data && result.data.subscriptionId;
 
           if (!attemptId) {
-            alert(
-              'Checkout stub yanıtında paymentAttemptId yok (beklenmeyen durum).'
-            );
+            const summary =
+              'Checkout stub yanıtında paymentAttemptId yok (beklenmeyen durum).';
+
+            updateCheckoutStatusPanel('error', summary);
+            alert(summary);
             return;
           }
 
@@ -788,13 +942,15 @@
             const code2 = detail2 && detail2.code;
             const msg2 = detail2 && detail2.message;
 
-            alert(
+            const summary2 =
               'Status hata (HTTP ' +
-                statusResult.status +
-                '): ' +
-                (code2 ? code2 + ' - ' : '') +
-                (msg2 || 'bilinmeyen hata (stub)')
-            );
+              statusResult.status +
+              '): ' +
+              (code2 ? code2 + ' - ' : '') +
+              (msg2 || 'bilinmeyen hata (stub)');
+
+            updateCheckoutStatusPanel('error', summary2);
+            alert(summary2);
             return;
           }
 
@@ -837,20 +993,84 @@
             );
           }
 
-          alert(
-            'Checkout status (stub):\n\n' +
-              'Plan: ' + planCode + '\n' +
-              'PaymentAttemptId: ' + attemptId + '\n' +
-              'SubscriptionId: ' + (subId || '(yok)') + '\n\n' +
-              summaryLines.join('\n')
-          );
+          const summary =
+            'Plan: ' + planCode + '\n' +
+            'PaymentAttemptId: ' + attemptId + '\n' +
+            'SubscriptionId: ' + (subId || '(yok)') + '\n\n' +
+            summaryLines.join('\n');
+
+          const state =
+            pa && pa.status === 'failed' ? 'error' : 'success';
+
+          updateCheckoutStatusPanel(state, summary);
+          alert('Checkout status (stub):\n\n' + summary);
         } catch (err) {
-          alert('Checkout/status çağrıları sırasında beklenmeyen hata (stub).');
+          const txt =
+            'Checkout/status çağrıları sırasında beklenmeyen hata (stub).';
+
+          updateCheckoutStatusPanel('error', txt);
+          alert(txt);
         }
       }
 
-      // Hero butonları için stub handler
+      async function demoCheckSubscription(noSubscription) {
+        const bodyEl = document.getElementById('subscription-status-body');
+        if (bodyEl) {
+          bodyEl.textContent = noSubscription
+            ? 'Abonelik yok senaryosu (stub) sorgulanıyor...'
+            : 'Aktif abonelik örneği (stub) sorgulanıyor...';
+        }
+
+        try {
+          const result =
+            await window.billingApiClient.getSubscription(noSubscription);
+
+          if (!result.ok) {
+            const detail = result.data && result.data.detail;
+            const code = detail && detail.code;
+            const msg = detail && detail.message;
+
+            if (bodyEl) {
+              bodyEl.textContent =
+                'HTTP ' +
+                result.status +
+                ' · ' +
+                (code ? code + ' - ' : '') +
+                (msg || 'Abonelik bulunamadı (stub).');
+            }
+            return;
+          }
+
+          const sub = result.data && result.data.subscription;
+
+          if (!sub) {
+            if (bodyEl) {
+              bodyEl.textContent =
+                'Beklenmeyen yanıt: subscription nesnesi yok (stub).';
+            }
+            return;
+          }
+
+          if (bodyEl) {
+            bodyEl.textContent =
+              'Abonelik ID: ' +
+              (sub.id || '(yok)') +
+              ' · plan: ' +
+              (sub.planCode || '(yok)') +
+              ' · status: ' +
+              (sub.status || '(bilinmiyor)');
+          }
+        } catch (e) {
+          if (bodyEl) {
+            bodyEl.textContent =
+              'Abonelik çağrısı sırasında beklenmeyen hata (stub).';
+          }
+        }
+      }
+
+      // Hero butonları ve abonelik paneli için stub handler'lar
       window.__gwStartCheckoutStub = demoStartCheckout;
+      window.__gwCheckSubscriptionStub = demoCheckSubscription;
     })();
   </script>
 </body>

@@ -10,6 +10,7 @@
     FAZ-47 / GATE-3: Starter plan için stub checkout butonu bağlandı.
     FAZ-47 / GATE-4+5: checkout + status çağrıları ile success / fail_card senaryoları oynatılıyor.
     FAZ-47 / GATE-6+7: Checkout sonucu paneli + abonelik durumu paneli eklendi.
+    FAZ-47 / GATE-8: Landing metinleri gateway + payment hikâyesine göre rafine edildi.
   -->
   <style>
     :root {
@@ -178,7 +179,7 @@
     .hero-subtitle {
       font-size: 0.95rem;
       color: var(--text-soft);
-      max-width: 460px;
+      max-width: 500px;
       margin-bottom: 18px;
     }
 
@@ -560,7 +561,7 @@
       </div>
       <div class="header-pill">
         <span class="header-pill-dot"></span>
-        <span>Early access altyapısı hazır · Payment tasarım + stub tamam</span>
+        <span>Early access açılıyor · Gateway + payment-ready omurga hazır</span>
       </div>
     </header>
 
@@ -574,32 +575,30 @@
         </div>
 
         <div class="hero-tagline">
-          <span class="hero-tagline-pill">Shipping gateway tools — not slide decks</span>
-          <span>CI, smoke, release, logging tek akışta</span>
+          <span class="hero-tagline-pill">Prod seviyesinde gateway &amp; release</span>
+          <span>CI, smoke, release ve billing aynı omurgada</span>
         </div>
 
         <h1 class="hero-title">
-          Gateway ve test
-          <span class="highlight">“yan proje”</span>
-          değil,
-          <span class="highlight">ürün</span> olsun.
+          Gateway, log ve
+          <span class="highlight">ödeme trafiğini</span>
+          tek yerden yönet.
         </h1>
 
         <p class="hero-subtitle">
-          GW Stack, kendi trafik akışını <strong>kendisi gözleyen</strong>,
-          <strong>release sürecine kendisi konuşan</strong> bir gateway &amp; tooling seti.
-          Kod tarafında hızlanırken, <strong>“deploy ettik mi, biliyor muyuz?”</strong>
-          sorusunu otomatiğe bağlıyor.
+          GW Stack, küçük ekipler için tasarlanmış bir <strong>gateway + gözlenebilirlik + billing</strong> iskeleti.
+          İlk müşteriden önce bile <strong>deploy ettik mi, para akıyor mu?</strong> sorusunu;
+          CI, smoke, release ve ödeme stub'larını aynı akışa bağlayarak cevaplıyor.
         </p>
 
         <div class="hero-metrics">
           <div class="metric-pill">
-            <strong>Payment domain tasarımı</strong>
-            <span>stub + happy-path planı ile bitti</span>
+            <strong>Production-grade CI</strong>
+            <span>smoke · post-smoke · release draft tek zincirde</span>
           </div>
           <div class="metric-pill">
-            <strong>FAZ-46</strong>
-            <span>billing_api + error codes + entegrasyon planı</span>
+            <strong>Payment-ready omurga</strong>
+            <span>billing_api stub + error codes + entegrasyon planı</span>
           </div>
         </div>
 
@@ -631,8 +630,8 @@
         </div>
 
         <div class="hero-footnote">
-          <span>Önce kendi CI’nı ikna eden gateway, sonra müşterini.</span>
-          Payment tarafında şu anda <strong>tasarım + stub seviyesinde</strong> ilerliyoruz.
+          <span>Şu anda payment hattı, gerçek entegrasyon öncesi <strong>tasarım + stub</strong> seviyesinde.</span>
+          Gerçek provider'a geçmeden önce bile ekiplerine uçtan uca <strong>checkout + status + subscription</strong> senaryolarını oynatıyor.
         </div>
 
         <div class="checkout-status-panel" id="checkout-status-panel">
@@ -650,8 +649,8 @@
       <aside class="side-panel">
         <section class="card">
           <div class="card-header">
-            <div class="card-title">Starter plan · FAZ-47 hedefi</div>
-            <span class="card-tag">Payment stub</span>
+            <div class="card-title">Starter plan · İlk ekipler için</div>
+            <span class="card-tag">Early access</span>
           </div>
           <div class="plan-card">
             <div class="plan-block">
@@ -678,31 +677,31 @@
 
         <section class="card">
           <div class="card-header">
-            <div class="card-title">Akış: code → deploy → billing</div>
-            <span class="card-tag">How GW Stack thinks</span>
+            <div class="card-title">Akış: kod → deploy → ödeme</div>
+            <span class="card-tag">GW Stack zihniyeti</span>
           </div>
           <div class="timeline" id="how-it-works">
             <div class="timeline-row">
               <div class="timeline-dot"></div>
               <div class="timeline-label">Code</div>
               <div class="timeline-text">
-                Branch push → smoke → release pipeline.
+                Branch push → smoke → release pipeline. Her adım kendi output'unu bırakır.
               </div>
             </div>
             <div class="timeline-row">
               <div class="timeline-dot"></div>
               <div class="timeline-label">Gateway</div>
               <div class="timeline-text">
-                Gateway, health &amp; trafik durumunu release’e geribildirim olarak taşır.
+                Gateway, health ve trafik durumunu release'e geri bildirir; “ship ettik” demeden önce hatayı yakalar.
               </div>
             </div>
             <div class="timeline-row">
               <div class="timeline-dot muted"></div>
               <div class="timeline-label">Billing</div>
               <div class="timeline-text">
-                FAZ-46 ile payment domain + stub tamamlandı.
-                FAZ-47 ile Landing → billing_api bağlanarak
-                <strong>checkout akışı</strong> devreye alınacak.
+                FAZ-46 ile payment domain + billing_api stub tamamlandı.
+                FAZ-47 ile landing, <strong>checkout + status + subscription</strong> çağrılarını bu stub'a bağlayarak
+                gerçek ödeme öncesi akışı kanıtlıyor.
               </div>
             </div>
           </div>
@@ -716,27 +715,27 @@
           <ul class="feature-list">
             <li>
               <span class="feature-bullet"></span>
-              <span>Domain modeli, API contract ve happy-path test planı <strong>dokümante</strong>.</span>
+              <span>Payment domain modeli, API contract ve happy-path test planı <strong>dokümante</strong>.</span>
             </li>
             <li>
               <span class="feature-bullet"></span>
-              <span><code>/api/billing/checkout/start</code> ve <code>/status</code> için <strong>working stub</strong> hazır.</span>
+              <span><code>/api/billing/checkout/start</code>, <code>/status</code> ve <code>/subscription</code> için <strong>working stub</strong> hazır.</span>
             </li>
             <li>
               <span class="feature-bullet"></span>
-              <span><code>PLAN_CODE_REQUIRED</code>, <code>CARD_DECLINED</code> vb. error code’lar <strong>standardize</strong>.</span>
+              <span><code>PLAN_CODE_REQUIRED</code>, <code>CARD_DECLINED</code>, <code>SUBSCRIPTION_NOT_FOUND</code> vb. error code'lar <strong>standardize</strong>.</span>
             </li>
             <li>
               <span class="feature-bullet"></span>
-              <span>Sonraki fazlarda landing &amp; planner UI bu stub’lara bağlanarak gerçek akışa yaklaşacak.</span>
+              <span>Sonraki fazlarda gerçek provider adapter'i ve CI/site_check → billing health entegrasyonu devreye alınacak.</span>
             </li>
           </ul>
         </section>
 
         <section class="card">
           <div class="card-header">
-            <div class="card-title">Abonelik durumu (stub)</div>
-            <span class="card-tag">SUBSCRIPTION</span>
+            <div class="card-title">Abonelik durumu (stub · dev görünümü)</div>
+            <span class="card-tag">SUBSCRIPTION API</span>
           </div>
           <div class="subscription-status" id="subscription-status-body">
             Henüz sorgu yapılmadı.
@@ -764,7 +763,7 @@
     <footer>
       <div class="footer-badge">
         <span class="dot"></span>
-        <span>FAZ-46: Payment domain &amp; billing_api stub tamam · FAZ-47: Landing entegrasyonu</span>
+        <span>FAZ-46: Payment domain &amp; billing_api stub · FAZ-47: Landing entegrasyonu ve görünürlük</span>
       </div>
       <div>
         <span>GW Stack • Build once, observe always.</span>
@@ -786,6 +785,9 @@
 
     FAZ-47 / GATE-6+7
     Checkout sonucu paneli + abonelik durumu paneli üzerinden gösteriliyor.
+
+    FAZ-47 / GATE-8
+    Metinler, gateway + payment hikâyesini product diline daha yakın anlatacak şekilde rafine edildi.
   -->
   <script>
     (function () {

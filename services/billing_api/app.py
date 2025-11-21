@@ -1,21 +1,67 @@
-from fastapi import FastAPI, HTTPException
+from typing import Optional, Dict, Any
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(title="GW Stack Billing API")
 
+# CORS (stub / lokal geliştirme için geniş açık)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # file:// ve localhost senaryolarını da kapsasın
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------------------------------------------------------------------------
-# HEALTH CHECK ENDPOINT
+# ÖRNEK VERİLER (STUB)
+# ---------------------------------------------------------------------------
+
+EXAMPLE_SUBSCRIPTION_ACTIVE = {
+    "id": "sub_example_active",
+    "status": "active",
+    "planCode": "starter",
+}
+
+EXAMPLE_SUBSCRIPTION_INCOMPLETE = {
+    "id": "sub_example_incomplete",
+    "status": "incomplete",
+    "planCode": "starter",
+}
+
+EXAMPLE_CHECKOUT_RESPONSE_SUCCESS = {
+    "paymentAttemptId": "pay_example_success",
+    "subscriptionId": EXAMPLE_SUBSCRIPTION_ACTIVE["id"],
+}
+
+EXAMPLE_CHECKOUT_RESPONSE_FAILED = {
+    "paymentAttemptId": "pay_example_failed",
+    "subscriptionId": EXAMPLE_SUBSCRIPTION_INCOMPLETE["id"],
+}
+
+
+class CheckoutStartRequest(BaseModel):
+    planCode: Optional[str] = None
+    successUrl: Optional[str] = None
+    cancelUrl: Optional[str] = None
+
+
+def error_detail(code: str, message: str, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    return {
+        "code": code,
+        "message": message,
+        "details": details or {},
+    }
+
+
+# ---------------------------------------------------------------------------
+# HEALTH
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
-async def health():
-    """
-    Basit servis sağlık kontrolü.
-
-    İleride:
-    - site_check veya başka health-check mekanizmaları bu endpoint'i kullanabilir.
-    """
+async def health() -> Dict[str, Any]:
     return {
         "service": "billing_api",
         "status": "ok",
@@ -28,207 +74,104 @@ async def health():
 
 
 # ---------------------------------------------------------------------------
-# ÖRNEK SUBSCRIPTION NESNELERİ
+# SUBSCRIPTION
 # ---------------------------------------------------------------------------
-
-# Başarılı ödeme sonrası beklediğimiz aktif abonelik.
-EXAMPLE_SUBSCRIPTION_ACTIVE = {
-    "id": "sub_example_active",
-    "status": "active",  # trial | active | past_due | canceled | incomplete | incomplete_expired | paused
-    "plan": {
-        "id": "plan_1",
-        "code": "starter",
-        "name": "Starter Plan",
-        "billingPeriod": "monthly",      # monthly | yearly
-        "priceAmount": 29.0,
-        "priceCurrency": "USD",
-    },
-    "currentPeriodStart": "2025-12-01T00:00:00Z",
-    "currentPeriodEnd": "2026-01-01T00:00:00Z",
-    "trialEnd": None,
-    "cancelAt": None,
-    "canceledAt": None,
-    "lastPaymentAt": "2025-12-01T00:00:00Z",
-}
-
-# Başarısız ilk ödeme sonrası, abonelik tamamlanmamış durumda.
-EXAMPLE_SUBSCRIPTION_INCOMPLETE = {
-    "id": "sub_example_incomplete",
-    "status": "incomplete",  # ilk ödeme tamamlanmamış
-    "plan": {
-        "id": "plan_1",
-        "code": "starter",
-        "name": "Starter Plan",
-        "billingPeriod": "monthly",
-        "priceAmount": 29.0,
-        "priceCurrency": "USD",
-    },
-    "currentPeriodStart": None,
-    "currentPeriodEnd": None,
-    "trialEnd": None,
-    "cancelAt": None,
-    "canceledAt": None,
-    "lastPaymentAt": None,
-}
-
-
-# ---------------------------------------------------------------------------
-# ÖRNEK CHECKOUT RESPONSE NESNELERİ
-# ---------------------------------------------------------------------------
-
-# Başarılı senaryo için checkout başlangıcı.
-EXAMPLE_CHECKOUT_RESPONSE_SUCCESS = {
-    "checkoutUrl": "https://payment-provider.example/checkout/session_success",
-    "paymentAttemptId": "pay_example_success",
-    "subscriptionId": EXAMPLE_SUBSCRIPTION_ACTIVE["id"],
-}
-
-# Başarısız senaryo için checkout başlangıcı (örneğin kart reddedilecek).
-EXAMPLE_CHECKOUT_RESPONSE_FAILED = {
-    "checkoutUrl": "https://payment-provider.example/checkout/session_fail",
-    "paymentAttemptId": "pay_example_failed",
-    "subscriptionId": EXAMPLE_SUBSCRIPTION_INCOMPLETE["id"],
-}
-
-
-# ---------------------------------------------------------------------------
-# ÖRNEK PAYMENT_ATTEMPT NESNELERİ
-# ---------------------------------------------------------------------------
-
-EXAMPLE_PAYMENT_ATTEMPT_SUCCESS = {
-    "id": "pay_example_success",
-    "status": "succeeded",           # pending | succeeded | failed | refunded | canceled
-    "errorCode": None,
-    "userFacingMessage": "Ödemeniz başarıyla alındı.",
-}
-
-EXAMPLE_PAYMENT_ATTEMPT_FAILED = {
-    "id": "pay_example_failed",
-    "status": "failed",
-    "errorCode": "CARD_DECLINED",
-    "userFacingMessage": "Ödemeniz kart sağlayıcınız tarafından reddedildi. Lütfen farklı bir kart deneyin.",
-}
-
-
-# ---------------------------------------------------------------------------
-# REQUEST MODELLERİ
-# ---------------------------------------------------------------------------
-
-class CheckoutStartRequest(BaseModel):
-    planCode: str
-    successUrl: str | None = None
-    cancelUrl: str | None = None
-
-
-# ---------------------------------------------------------------------------
-# ENDPOINTLER
-# ---------------------------------------------------------------------------
-
 
 @app.get("/api/billing/subscription")
-async def get_subscription(testNoSubscription: bool = False):
+async def get_subscription(
+    testNoSubscription: bool = Query(False, alias="testNoSubscription"),
+) -> Dict[str, Any]:
     """
-    GET /api/billing/subscription
-
-    Şu anda iki durumu stub'luyoruz:
-
-    1) Varsayılan (abonelik var):
-       - testNoSubscription=false (veya parametre verilmemiş)
-       - 200 OK + EXAMPLE_SUBSCRIPTION_ACTIVE
-
-    2) Aboneliği olmayan kullanıcı (Senaryo 3 testi için):
-       - testNoSubscription=true
-       - 404 + SUBSCRIPTION_NOT_FOUND hatası
+    Varsayılan: aktif subscription döner.
+    testNoSubscription=true ise 404 + SUBSCRIPTION_NOT_FOUND.
     """
-
     if testNoSubscription:
-        # Senaryo 3: aboneliği olmayan kullanıcı için test amacıyla 404 döner.
         raise HTTPException(
             status_code=404,
-            detail={
-                "code": "SUBSCRIPTION_NOT_FOUND",
-                "message": "Bu hesap için aktif bir abonelik bulunamadı.",
-                "details": None,
-            },
+            detail=error_detail(
+                "SUBSCRIPTION_NOT_FOUND",
+                "Bu hesap için aktif bir abonelik bulunamadı.",
+            ),
         )
 
-    # Senaryo 1 / normal durumda aktif abonelik örneği.
     return {"subscription": EXAMPLE_SUBSCRIPTION_ACTIVE}
 
 
+# ---------------------------------------------------------------------------
+# CHECKOUT START
+# ---------------------------------------------------------------------------
+
 @app.post("/api/billing/checkout/start")
-async def checkout_start(payload: CheckoutStartRequest):
+async def checkout_start(payload: CheckoutStartRequest) -> Dict[str, Any]:
     """
-    POST /api/billing/checkout/start
-
-    Şimdilik iki senaryoyu stub olarak destekliyoruz:
-
-    1) Başarılı senaryo (happy path):
-       - planCode = "starter" (veya herhangi başka bir normal plan kodu)
-       - Response: EXAMPLE_CHECKOUT_RESPONSE_SUCCESS
-
-    2) Başarısız ilk ödeme senaryosu (Senaryo 2 test için):
-       - planCode = "fail_card"
-       - Response: EXAMPLE_CHECKOUT_RESPONSE_FAILED
-       Bu ID, checkout/status endpoint'inde 'failed' paymentAttempt ile eşleşir.
+    planCode boş ise:
+      400 + PLAN_CODE_REQUIRED
+    planCode == "fail_card" ise:
+      failed checkout stub
+    Aksi durumda:
+      successful checkout stub
     """
-
     if not payload.planCode:
         raise HTTPException(
             status_code=400,
-            detail={
-                "code": "PLAN_CODE_REQUIRED",
-                "message": "Bir plan seçmeniz gerekiyor.",
-                "details": None,
-            },
+            detail=error_detail(
+                "PLAN_CODE_REQUIRED",
+                "Bir plan seçmeniz gerekiyor.",
+            ),
         )
 
-    # Test amaçlı: özel plan kodu "fail_card" ise, bilinçli olarak
-    # başarısız bir ödeme denemesine giden ID'yi döndürüyoruz.
     if payload.planCode == "fail_card":
         return EXAMPLE_CHECKOUT_RESPONSE_FAILED
 
-    # Tüm diğer plan kodlarında (starter vs.), başarılı senaryoyu döndür.
+    # Default: başarılı stub
     return EXAMPLE_CHECKOUT_RESPONSE_SUCCESS
 
 
+# ---------------------------------------------------------------------------
+# CHECKOUT STATUS
+# ---------------------------------------------------------------------------
+
 @app.get("/api/billing/checkout/status")
-async def checkout_status(paymentAttemptId: str):
+async def checkout_status(
+    paymentAttemptId: str = Query(..., alias="paymentAttemptId"),
+) -> Dict[str, Any]:
     """
-    GET /api/billing/checkout/status
-
-    Şimdilik üç durum stub'lıyoruz:
-
-    1) paymentAttemptId = pay_example_success
-       - paymentAttempt: succeeded
-       - subscription: active
-
-    2) paymentAttemptId = pay_example_failed
-       - paymentAttempt: failed (CARD_DECLINED)
-       - subscription: incomplete
-
-    3) Diğer tüm IDs:
-       - 404 + PAYMENT_ATTEMPT_NOT_FOUND
+    paymentAttemptId == pay_example_success:
+      paymentAttempt.succeeded + subscription.active
+    paymentAttemptId == pay_example_failed:
+      paymentAttempt.failed + CARD_DECLINED
+    Diğer tüm ID'ler:
+      404 + PAYMENT_ATTEMPT_NOT_FOUND
     """
-
-    if paymentAttemptId == EXAMPLE_PAYMENT_ATTEMPT_SUCCESS["id"]:
+    if paymentAttemptId == "pay_example_success":
         return {
-            "paymentAttempt": EXAMPLE_PAYMENT_ATTEMPT_SUCCESS,
+            "paymentAttempt": {
+                "id": "pay_example_success",
+                "status": "succeeded",
+                "subscriptionId": EXAMPLE_SUBSCRIPTION_ACTIVE["id"],
+            },
             "subscription": EXAMPLE_SUBSCRIPTION_ACTIVE,
         }
 
-    if paymentAttemptId == EXAMPLE_PAYMENT_ATTEMPT_FAILED["id"]:
+    if paymentAttemptId == "pay_example_failed":
         return {
-            "paymentAttempt": EXAMPLE_PAYMENT_ATTEMPT_FAILED,
+            "paymentAttempt": {
+                "id": "pay_example_failed",
+                "status": "failed",
+                "subscriptionId": EXAMPLE_SUBSCRIPTION_INCOMPLETE["id"],
+                "errorCode": "CARD_DECLINED",
+                "userFacingMessage": (
+                    "Ödemeniz kart sağlayıcınız tarafından reddedildi. "
+                    "Lütfen farklı bir kart deneyin."
+                ),
+            },
             "subscription": EXAMPLE_SUBSCRIPTION_INCOMPLETE,
         }
 
-    # Diğer ID'ler için 404.
     raise HTTPException(
         status_code=404,
-        detail={
-            "code": "PAYMENT_ATTEMPT_NOT_FOUND",
-            "message": "Bu ödeme denemesi bulunamadı.",
-            "details": None,
-        },
+        detail=error_detail(
+            "PAYMENT_ATTEMPT_NOT_FOUND",
+            "Bu ödeme denemesi bulunamadı.",
+        ),
     )

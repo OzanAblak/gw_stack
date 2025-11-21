@@ -36,6 +36,15 @@ EXAMPLE_CHECKOUT_RESPONSE = {
 }
 
 
+# Payment attempt için örnek stub.
+EXAMPLE_PAYMENT_ATTEMPT = {
+    "id": "pay_example_123",
+    "status": "succeeded",           # pending | succeeded | failed | refunded | canceled
+    "errorCode": None,
+    "userFacingMessage": "Ödemeniz başarıyla alındı.",
+}
+
+
 class CheckoutStartRequest(BaseModel):
     planCode: str
     successUrl: str | None = None
@@ -95,3 +104,36 @@ async def checkout_start(payload: CheckoutStartRequest):
         )
 
     return EXAMPLE_CHECKOUT_RESPONSE
+
+
+@app.get("/api/billing/checkout/status")
+async def checkout_status(paymentAttemptId: str):
+    """
+    Payment API contract dokümanındaki
+    GET /api/billing/checkout/status endpoint'inin ilk stub implementasyonu.
+
+    Şimdilik:
+    - Query param olarak paymentAttemptId alıyoruz,
+    - Eğer bizim örnek ID ile eşleşiyorsa:
+        paymentAttempt + subscription bilgisi döndürüyoruz,
+    - Eşleşmiyorsa, 404 + PAYMENT_ATTEMPT_NOT_FOUND hatası döndürüyoruz.
+
+    İleride:
+    - paymentAttemptId üzerinden PAYMENT_ATTEMPT tablosu/servisi sorgulanacak,
+    - İlgili SUBSCRIPTION kaydı ile ilişkilendirilecek.
+    """
+
+    if paymentAttemptId != EXAMPLE_PAYMENT_ATTEMPT["id"]:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "PAYMENT_ATTEMPT_NOT_FOUND",
+                "message": "Bu ödeme denemesi bulunamadı.",
+                "details": None,
+            },
+        )
+
+    return {
+        "paymentAttempt": EXAMPLE_PAYMENT_ATTEMPT,
+        "subscription": EXAMPLE_SUBSCRIPTION["subscription"],
+    }

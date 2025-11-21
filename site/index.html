@@ -8,6 +8,7 @@
     GW Stack Landing
     FAZ-47 / GATE-2: billingApiClient HTTP helper eklendi.
     FAZ-47 / GATE-3: Starter plan için stub checkout butonu bağlandı.
+    FAZ-47 / GATE-4+5: checkout + status çağrıları ile success / fail_card senaryoları oynatılıyor.
   -->
   <style>
     :root {
@@ -189,7 +190,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .metric-pill {
@@ -216,32 +217,31 @@
       margin-bottom: 18px;
     }
 
-    .btn-primary {
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost {
       border-radius: 999px;
-      border: none;
-      padding: 9px 18px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      background: linear-gradient(120deg, #38bdf8, #22c55e);
-      color: #020617;
-      box-shadow: 0 20px 40px rgba(34, 197, 94, 0.35);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-secondary {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.45);
       padding: 9px 16px;
       font-size: 0.85rem;
       cursor: pointer;
-      background: rgba(15, 23, 42, 0.89);
-      color: var(--text-soft);
       display: inline-flex;
       align-items: center;
       gap: 7px;
+    }
+
+    .btn-primary {
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: linear-gradient(120deg, #38bdf8, #22c55e);
+      color: #020617;
+      box-shadow: 0 20px 40px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-secondary {
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 23, 42, 0.89);
+      color: var(--text-soft);
     }
 
     .btn-secondary span.dot {
@@ -249,6 +249,19 @@
       height: 7px;
       border-radius: 999px;
       background: var(--accent);
+    }
+
+    .btn-ghost {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-soft);
+    }
+
+    .btn-ghost span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--danger);
     }
 
     .hero-footnote {
@@ -506,7 +519,7 @@
 
         <p class="hero-subtitle">
           GW Stack, kendi trafik akışını <strong>kendisi gözleyen</strong>,
-          <strong>release sürecine kendisi konuşan</strong> bir gateway & tooling seti.
+          <strong>release sürecine kendisi konuşan</strong> bir gateway &amp; tooling seti.
           Kod tarafında hızlanırken, <strong>“deploy ettik mi, biliyor muyuz?”</strong>
           sorusunu otomatiğe bağlıyor.
         </p>
@@ -528,17 +541,29 @@
             type="button"
             onclick="window.__gwStartCheckoutStub && window.__gwStartCheckoutStub('starter');"
           >
-            Starter plan için stub checkout başlat
+            Starter (başarılı) stub checkout
             <span>→</span>
           </button>
-          <button class="btn-secondary" type="button" onclick="document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });">
+          <button
+            class="btn-ghost"
+            type="button"
+            onclick="window.__gwStartCheckoutStub && window.__gwStartCheckoutStub('fail_card');"
+          >
+            <span class="dot"></span>
+            Kart reddi senaryosu (stub)
+          </button>
+          <button
+            class="btn-secondary"
+            type="button"
+            onclick="document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });"
+          >
             <span class="dot"></span>
             Nasıl çalışıyor?
           </button>
         </div>
 
         <div class="hero-footnote">
-          <span>Önce kendi CI’nı ikna eden gateway, sonra müşterini.</span>  
+          <span>Önce kendi CI’nı ikna eden gateway, sonra müşterini.</span>
           Payment tarafında şu anda <strong>tasarım + stub seviyesinde</strong> ilerliyoruz.
         </div>
       </section>
@@ -650,6 +675,10 @@
 
     FAZ-47 / GATE-3
     Starter plan butonu, stub checkout başlatıyor (planCode='starter').
+
+    FAZ-47 / GATE-4+5
+    Checkout sonrası paymentAttemptId ile /status çağrısı yapılıp
+    success / fail_card senaryoları kullanıcıya özetleniyor.
   -->
   <script>
     (function () {
@@ -706,7 +735,13 @@
         };
       }
 
-      // Stub demo: Starter plan için basit checkout akışı
+      // Global export (Landing UI buradan kullanacak)
+      window.billingApiClient = {
+        startCheckout: startCheckout,
+        getCheckoutStatus: getCheckoutStatus
+      };
+
+      // Stub demo: checkout + status ile success / fail_card akışını özetler
       async function demoStartCheckout(planCode) {
         if (!planCode) {
           alert('Plan seçilmedi (stub: planCode boş).');
@@ -714,19 +749,20 @@
         }
 
         try {
+          // 1) Checkout başlat
           const result = await window.billingApiClient.startCheckout(planCode);
 
           if (!result.ok) {
-            const code =
-              result.data &&
-              result.data.detail &&
-              result.data.detail.code;
+            const detail = result.data && result.data.detail;
+            const code = detail && detail.code;
+            const msg = detail && detail.message;
 
             alert(
               'Checkout hata (HTTP ' +
                 result.status +
                 '): ' +
-                (code || 'bilinmeyen hata (stub)')
+                (code ? code + ' - ' : '') +
+                (msg || 'bilinmeyen hata (stub)')
             );
             return;
           }
@@ -736,24 +772,84 @@
           const subId =
             result.data && result.data.subscriptionId;
 
+          if (!attemptId) {
+            alert(
+              'Checkout stub yanıtında paymentAttemptId yok (beklenmeyen durum).'
+            );
+            return;
+          }
+
+          // 2) Status sor
+          const statusResult =
+            await window.billingApiClient.getCheckoutStatus(attemptId);
+
+          if (!statusResult.ok) {
+            const detail2 = statusResult.data && statusResult.data.detail;
+            const code2 = detail2 && detail2.code;
+            const msg2 = detail2 && detail2.message;
+
+            alert(
+              'Status hata (HTTP ' +
+                statusResult.status +
+                '): ' +
+                (code2 ? code2 + ' - ' : '') +
+                (msg2 || 'bilinmeyen hata (stub)')
+            );
+            return;
+          }
+
+          const pa =
+            statusResult.data && statusResult.data.paymentAttempt;
+          const sub =
+            statusResult.data && statusResult.data.subscription;
+
+          let summaryLines = [];
+
+          if (pa && pa.status === 'succeeded') {
+            summaryLines.push('Ödeme durumu: BAŞARILI');
+            summaryLines.push(
+              'Abonelik durumu: ' +
+              ((sub && sub.status) || '(bilinmiyor)')
+            );
+          } else if (pa && pa.status === 'failed') {
+            const errCode = pa.errorCode || 'CARD_DECLINED';
+            const userMsg =
+              pa.userFacingMessage ||
+              'Ödemeniz kart sağlayıcınız tarafından reddedildi. Lütfen farklı bir kart deneyin.';
+
+            summaryLines.push(
+              'Ödeme durumu: BAŞARISIZ (' + errCode + ')'
+            );
+            summaryLines.push(
+              'Kullanıcı mesajı: ' + userMsg
+            );
+            summaryLines.push(
+              'Abonelik durumu: ' +
+              ((sub && sub.status) || '(bilinmiyor)')
+            );
+          } else {
+            summaryLines.push(
+              'Ödeme durumu: ' + ((pa && pa.status) || '(bilinmiyor)')
+            );
+            summaryLines.push(
+              'Abonelik durumu: ' +
+              ((sub && sub.status) || '(bilinmiyor)')
+            );
+          }
+
           alert(
-            'Checkout başlatıldı (stub):\n\n' +
+            'Checkout status (stub):\n\n' +
               'Plan: ' + planCode + '\n' +
-              'PaymentAttemptId: ' + (attemptId || '(yok)') + '\n' +
-              'SubscriptionId: ' + (subId || '(yok)')
+              'PaymentAttemptId: ' + attemptId + '\n' +
+              'SubscriptionId: ' + (subId || '(yok)') + '\n\n' +
+              summaryLines.join('\n')
           );
         } catch (err) {
-          alert('Checkout çağrısı sırasında beklenmeyen hata (stub).');
+          alert('Checkout/status çağrıları sırasında beklenmeyen hata (stub).');
         }
       }
 
-      // Global export (Landing UI buradan kullanacak)
-      window.billingApiClient = {
-        startCheckout: startCheckout,
-        getCheckoutStatus: getCheckoutStatus
-      };
-
-      // Hero butonu için stub handler
+      // Hero butonları için stub handler
       window.__gwStartCheckoutStub = demoStartCheckout;
     })();
   </script>

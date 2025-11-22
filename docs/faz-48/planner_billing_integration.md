@@ -1,52 +1,42 @@
-# Planner ↔ Billing Subscription Integration (FAZ-48)
+# Planner ↔ Billing Entegrasyonu (FAZ-48)
 
-Bu doküman, planner servisinin billing_api ile olan abonelik (subscription) entegrasyonunu tanımlar.
-
-- Faz: **FAZ-48**
-- Dosya: `docs/faz-48/planner_billing_integration.md`
-- İlgili kod:
-  - `planner/billing_client.py`
-  - `planner/app.py`
-  - `config/planner.example.env`
-- İlgili stub/backend:
-  - `services/billing_api/app.py`
-  - endpoint: `GET /api/billing/subscription` (stub)
+Bu doküman, planner servisinin billing_api ile entegrasyonunu ve ilgili endpoint’leri açıklar.  
+Amaç, tek bir entegrasyon katmanı üzerinden abonelik bilgisini okuyup, planner tarafında erişim önizlemesi (access preview) üretmek ve bunu plan çıktısıyla birleştirmektir.
 
 ---
 
-## 1. Amaç
+## 1. Amaç ve Genel Mimari
 
-Planner’ın, kullanıcının abonelik durumunu billing_api üzerinden öğrenebilmesi ve bunu:
+FAZ-48 ile hedeflenenler:
 
-1. **Tek bir client katmanı** (`BillingClient`) ile yapması,
-2. Basit debug endpoint’leri ile dışarıya açması:
-   - `GET /v1/billing/subscription_probe`
-   - `GET /v1/billing/access_preview`
-3. İleride **feature gating** için kullanılabilecek net bir “access preview” çıktısı üretmesi.
+- Planner’ın billing_api’den abonelik (subscription) durumunu okuyabilmesi.
+- Bu bilgiyi tek bir client katmanı (`planner/billing_client.py`) üzerinden almak.
+- İki adet debug endpoint sağlamak:
+  - `GET /v1/billing/subscription_probe`
+  - `GET /v1/billing/access_preview`
+- Plan derleme sonucu ile billing erişim önizlemesini birleştiren endpoint eklemek:
+  - `POST /v1/plan/compile_with_access_preview`
 
-**Bu fazda:**  
-Planner’ın core planlama davranışı (`/v1/plan/compile`) abonelik durumuna göre değişmiyor; sadece billing entegrasyonunun iskeleti kuruluyor.
+Genel akış:
+
+1. Planner, env’den `BILLING_API_BASE_URL` okur.
+2. `BillingClient`, billing_api’ye HTTP üzerinden bağlanır.
+3. Billing cevabı normalize edilerek `BillingSubscription` modeline map edilir.
+4. Planner endpoint’leri bu modeli kullanarak:
+   - Ham subscription view (`subscription_probe`),
+   - Access preview (`access_preview`),
+   - Plan + access preview birleşimi (`compile_with_access_preview`)
+   üretir.
 
 ---
 
-## 2. Env / Config
+## 2. Env Konfigürasyonu
 
-### 2.1. Planner env örneği
+Planner’ın billing_api ile konuşabilmesi için env’de:
 
-Dosya: `config/planner.example.env`
+- Değişken adı: `BILLING_API_BASE_URL`
+
+Örnek (development/stub):
 
 ```env
-# GW Stack - Planner env example (FAZ-48)
-# Bu dosya sadece ÖRNEKTİR. Gerçek ortamda kendi .env dosyanıza kopyalayıp değerleri düzenleyin.
-
-# Billing API base URL
-# Planner, abonelik durumunu öğrenmek için billing_api servisine bu base URL üzerinden gider.
-# Lokal stub geliştirme için örnek:
-#   http://127.0.0.1:19100
-#
-# Bu değer config/payment.example.env içindeki BILLING_API_BASE_URL ile uyumlu kalmalıdır.
 BILLING_API_BASE_URL=http://127.0.0.1:19100
-
-# İLERİDE KULLANILABİLECEK PLANNER AYARLARI (ÖRNEK, ŞU AN ZORUNLU DEĞİL):
-# PLANNER_PORT=9090
-# PLANNER_LOG_LEVEL=info

@@ -1,5 +1,5 @@
 # planner/billing_client.py
-# Billing API client for planner service (FAZ-48 · GATE-3)
+# Billing API client for planner service (FAZ-48 · GATE-3/5)
 #
 # Bu modül, planner tarafında billing_api ile konuşan TEK sorumlu katmandır.
 # Şu anda sadece abonelik (subscription) bilgisi için minimal bir iskelet sağlar.
@@ -113,20 +113,43 @@ class BillingClient:
     def _parse_subscription(self, raw: Dict[str, Any]) -> BillingSubscription:
         """
         billing_api JSON çıktısını BillingSubscription modeline map eder.
-        Beklenmeyen status değerlerini UNKNOWN'a map eder.
+
+        Desteklenen şekiller:
+        1) Top-level subscription:
+           {
+             "subscriptionId": "...",
+             "planCode": "...",
+             "status": "active"
+           }
+
+        2) İç içe subscription nesnesi:
+           {
+             "subscription": {
+               "id": "...",
+               "planCode": "...",
+               "status": "active"
+             }
+           }
         """
-        status_str = str(raw.get("status") or "").lower()
+        # Eğer "subscription" alanı varsa önce onu kullan, yoksa raw'ı kullan
+        container = raw.get("subscription") or raw
+
+        status_str = str(container.get("status") or "").lower()
         try:
             status = BillingSubscriptionStatus(status_str)
         except ValueError:
             status = BillingSubscriptionStatus.UNKNOWN
 
+        # ID için hem "subscriptionId" hem "id" alanlarını destekle
+        subscription_id = container.get("subscriptionId") or container.get("id") or ""
+        plan_code = container.get("planCode") or ""
+
         return BillingSubscription(
-            subscription_id=str(raw.get("subscriptionId") or ""),
-            plan_code=str(raw.get("planCode") or ""),
+            subscription_id=str(subscription_id),
+            plan_code=str(plan_code),
             status=status,
-            renew_period=raw.get("renewPeriod"),
-            renews_at=raw.get("renewsAt"),
-            created_at=raw.get("createdAt"),
-            cancel_at=raw.get("cancelAt"),
+            renew_period=container.get("renewPeriod"),
+            renews_at=container.get("renewsAt"),
+            created_at=container.get("createdAt"),
+            cancel_at=container.get("cancelAt"),
         )

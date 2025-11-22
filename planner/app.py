@@ -19,6 +19,7 @@ from billing_client import (  # type: ignore
     BillingClientError,
     BillingSubscriptionStatus,
 )
+from access_gating import feature_access_from_preview  # FAZ-49: access gating helper
 
 app = Flask(__name__)
 
@@ -325,10 +326,20 @@ def compile_with_access_preview() -> Any:
                 "preview": preview,
             }
 
-    response_body = {
+    response_body: Dict[str, Any] = {
         **plan_result,
         "billing": billing_block,
     }
+
+    # --- access gating integration (FAZ-49) ---
+    preview_for_gating = None
+    if isinstance(billing_block, dict) and billing_block.get("ok") and "preview" in billing_block:
+        preview_for_gating = billing_block["preview"]
+
+    feature_access = feature_access_from_preview(preview_for_gating)
+    response_body["featureAccess"] = feature_access.to_dict()
+    # --- end access gating integration ---
+
     return jsonify(response_body), 200
 
 

@@ -6,6 +6,7 @@
 #                                         -> 400 on invalid/missing/blank goal or non-JSON
 #   GET  /v1/billing/subscription_probe -> 200 with subscription / no-subscription
 #                                         -> 5xx on billing/config errors
+#   GET  /v1/billing/access_preview     -> 200 with access preview derived from subscription
 
 from flask import Flask, request, jsonify
 import os
@@ -152,6 +153,149 @@ def subscription_probe() -> Any:
                 "renewPeriod": sub.renew_period,
                 "renewsAt": sub.renews_at,
             },
+        }
+    ), 200
+
+
+def _compute_access_preview_from_subscription(sub_status) -> Dict[str, Any]:
+    """
+    Subscription status'ine göre access preview üretir.
+    """
+    if sub_status is None:
+        return {
+            "hasSubscription": False,
+            "accessLevel": "limited",
+            "reason": "no_subscription",
+            "subscriptionStatus": None,
+        }
+
+    if sub_status in (BillingSubscriptionStatus.ACTIVE, BillingSubscriptionStatus.TRIALING):
+        return {
+            "hasSubscription": True,
+            "accessLevel": "full",
+            "reason": "ok",
+            "subscriptionStatus": sub_status.value,
+        }
+
+    if sub_status == BillingSubscriptionStatus.INCOMPLETE:
+        return {
+            "hasSubscription": True,
+            "accessLevel": "limited",
+            "reason": "incomplete",
+            "subscriptionStatus": sub_status.value,
+        }
+
+    if sub_status == BillingSubscriptionStatus.CANCELED:
+        return {
+            "hasSubscription": True,
+            "accessLevel": "limited",
+            "reason": "canceled",
+            "subscriptionStatus": sub_status.value,
+        }
+
+    # UNKNOWN veya beklenmeyen durumlar
+    return {
+        "hasSubscription": False,
+        "accessLevel": "limited",
+        "reason": "unknown_status",
+        "subscriptionStatus": sub_status.value,
+    }
+
+
+@app.get("/v1/billing/access_preview")
+def access_preview() -> Any:
+    """
+    Planner için abonelik bazlı erişim önizlemesi.
+
+    Dönen JSON örneği (abonelik varsa ve active ise):
+
+    {
+      "ok": true,
+      "source": "billing_api",
+      "status": "subscription_found",
+      "preview": {
+        "hasSubscription": true,
+        "accessLevel": "full",
+        "reason": "ok",
+        "subscriptionStatus": "active"
+      }
+    }
+
+    Abonelik yoksa:
+
+    {
+      "ok": true,
+      "source": "billing_api",
+      "status": "no_subscription",
+      "preview": {
+        "hasSubscription": false,
+        "accessLevel": "limited",
+        "reason": "no_subscription",
+        "subscriptionStatus": null
+      }
+    }
+    """
+    try:
+        client = _get_billing_client()
+    except BillingClientError as e:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "config_error",
+                    "message": str(e),
+                }
+            ),
+            500,
+        )
+
+    try:
+        sub = client.get_subscription(account_id="stub")
+    except BillingClientTemporaryError as e:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "temporary_error",
+                    "message": str(e),
+                }
+            ),
+            503,
+        )
+    except BillingClientError as e:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "client_error",
+                    "message": str(e),
+                }
+            ),
+            500,
+        )
+
+    if sub is None:
+        preview = _compute_access_preview_from_subscription(None)
+        return jsonify(
+            {
+                "ok": True,
+                "source": "billing_api",
+                "status": "no_subscription",
+                "preview": preview,
+            }
+        ), 200
+
+    preview = _compute_access_preview_from_subscription(sub.status)
+
+    return jsonify(
+        {
+            "ok": True,
+            "source": "billing_api",
+            "status": "subscription_found",
+            "preview": preview,
         }
     ), 200
 

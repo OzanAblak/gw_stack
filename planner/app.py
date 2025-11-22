@@ -1,12 +1,13 @@
 # planner/app.py
 # Flask/Waitress planner service
 # Endpoints:
-#   GET  /health                        -> 200
-#   POST /v1/plan/compile               -> 200 with {"ok":true,...} on valid payload
-#                                         -> 400 on invalid/missing/blank goal or non-JSON
-#   GET  /v1/billing/subscription_probe -> 200 with subscription / no-subscription
-#                                         -> 5xx on billing/config errors
-#   GET  /v1/billing/access_preview     -> 200 with access preview derived from subscription
+#   GET  /health                                -> 200
+#   POST /v1/plan/compile                       -> 200 with {"ok":true,...} on valid payload
+#                                                 -> 400 on invalid/missing/blank goal or non-JSON
+#   GET  /v1/billing/subscription_probe         -> 200 with subscription / no-subscription
+#                                                 -> 5xx on billing/config errors
+#   GET  /v1/billing/access_preview             -> 200 with access preview derived from subscription
+#   POST /v1/plan/compile_with_access_preview   -> 200 with plan + billing access preview
 
 from flask import Flask, request, jsonify
 import os
@@ -78,12 +79,6 @@ def _get_billing_client() -> BillingClient:
 def subscription_probe() -> Any:
     """
     Billing API'den abonelik bilgisini çekmek için küçük bir probe endpoint.
-
-    Amaç:
-    - Planner'ın billing_api ile konuşabildiğini doğrulamak.
-    - Abonelik varsa temel bilgileri döndürmek.
-    - Abonelik yoksa kontrollü bir "no_subscription" cevabı vermek.
-    - Geçici veya config hatalarında anlaşılır 5xx cevapları üretmek.
     """
     try:
         client = _get_billing_client()
@@ -206,34 +201,6 @@ def _compute_access_preview_from_subscription(sub_status) -> Dict[str, Any]:
 def access_preview() -> Any:
     """
     Planner için abonelik bazlı erişim önizlemesi.
-
-    Dönen JSON örneği (abonelik varsa ve active ise):
-
-    {
-      "ok": true,
-      "source": "billing_api",
-      "status": "subscription_found",
-      "preview": {
-        "hasSubscription": true,
-        "accessLevel": "full",
-        "reason": "ok",
-        "subscriptionStatus": "active"
-      }
-    }
-
-    Abonelik yoksa:
-
-    {
-      "ok": true,
-      "source": "billing_api",
-      "status": "no_subscription",
-      "preview": {
-        "hasSubscription": false,
-        "accessLevel": "limited",
-        "reason": "no_subscription",
-        "subscriptionStatus": null
-      }
-    }
     """
     try:
         client = _get_billing_client()
@@ -298,6 +265,71 @@ def access_preview() -> Any:
             "preview": preview,
         }
     ), 200
+
+
+@app.post("/v1/plan/compile_with_access_preview")
+def compile_with_access_preview() -> Any:
+    """
+    Plan derleyip, yanına billing access preview ekleyen endpoint.
+
+    Davranış:
+    - Payload VALID ise:
+      - Plan her durumda derlenir.
+      - Billing tarafında hata olsa bile HTTP 200 döner, fakat "billing" bloğu içinde hata bilgisi taşır.
+    - Payload INVALID ise:
+      - Eski /v1/plan/compile ile aynı şekilde 400 döner.
+    """
+    data = request.get_json(silent=True)
+    ok, err = _validate_payload(data)
+    if not ok:
+        return jsonify({"error": err}), 400
+
+    goal = data["goal"].strip()
+    plan_result = _compile_goal(goal)
+
+    # Varsayılan billing bloğu (hata durumunda override edilir)
+    billing_block: Dict[str, Any]
+
+    try:
+        client = _get_billing_client()
+        sub = client.get_subscription(account_id="stub")
+    except BillingClientTemporaryError as e:
+        billing_block = {
+            "ok": False,
+            "source": "billing_api",
+            "kind": "temporary_error",
+            "message": str(e),
+        }
+    except BillingClientError as e:
+        billing_block = {
+            "ok": False,
+            "source": "billing_api",
+            "kind": "config_or_client_error",
+            "message": str(e),
+        }
+    else:
+        if sub is None:
+            preview = _compute_access_preview_from_subscription(None)
+            billing_block = {
+                "ok": True,
+                "source": "billing_api",
+                "status": "no_subscription",
+                "preview": preview,
+            }
+        else:
+            preview = _compute_access_preview_from_subscription(sub.status)
+            billing_block = {
+                "ok": True,
+                "source": "billing_api",
+                "status": "subscription_found",
+                "preview": preview,
+            }
+
+    response_body = {
+        **plan_result,
+        "billing": billing_block,
+    }
+    return jsonify(response_body), 200
 
 
 def create_app() -> Flask:

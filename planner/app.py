@@ -1,13 +1,22 @@
 # planner/app.py
 # Flask/Waitress planner service
 # Endpoints:
-#   GET  /health                -> 200
-#   POST /v1/plan/compile       -> 200 with {"ok":true,...} on valid payload
-#                                 -> 400 on invalid/missing/blank goal or non-JSON
+#   GET  /health                        -> 200
+#   POST /v1/plan/compile               -> 200 with {"ok":true,...} on valid payload
+#                                         -> 400 on invalid/missing/blank goal or non-JSON
+#   GET  /v1/billing/subscription_probe -> 200 with subscription / no-subscription
+#                                         -> 5xx on billing/config errors
 
 from flask import Flask, request, jsonify
 import os
 from typing import Any, Dict
+
+from billing_client import (  # type: ignore
+    BillingClient,
+    BillingClientTemporaryError,
+    BillingClientError,
+    BillingSubscriptionStatus,
+)
 
 app = Flask(__name__)
 
@@ -54,6 +63,97 @@ def compile_plan() -> Any:
     goal = data["goal"].strip()
     result = _compile_goal(goal)
     return jsonify(result), 200
+
+
+def _get_billing_client() -> BillingClient:
+    """
+    BillingClient factory.
+    Şimdilik sadece env'den BILLING_API_BASE_URL okuyup client oluşturur.
+    """
+    return BillingClient()
+
+
+@app.get("/v1/billing/subscription_probe")
+def subscription_probe() -> Any:
+    """
+    Billing API'den abonelik bilgisini çekmek için küçük bir probe endpoint.
+
+    Amaç:
+    - Planner'ın billing_api ile konuşabildiğini doğrulamak.
+    - Abonelik varsa temel bilgileri döndürmek.
+    - Abonelik yoksa kontrollü bir "no_subscription" cevabı vermek.
+    - Geçici veya config hatalarında anlaşılır 5xx cevapları üretmek.
+    """
+    try:
+        client = _get_billing_client()
+    except BillingClientError as e:
+        # Konfigürasyon hatası (örn. BILLING_API_BASE_URL set edilmemiş)
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "config_error",
+                    "message": str(e),
+                }
+            ),
+            500,
+        )
+
+    try:
+        # account_id şimdilik stub; ileride gerçek hesap kimliği ile beslenecek.
+        sub = client.get_subscription(account_id="stub")
+    except BillingClientTemporaryError as e:
+        # Geçici HTTP / network / JSON hataları
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "temporary_error",
+                    "message": str(e),
+                }
+            ),
+            503,
+        )
+    except BillingClientError as e:
+        # Diğer client hataları (beklenmeyen durum)
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "source": "billing_api",
+                    "kind": "client_error",
+                    "message": str(e),
+                }
+            ),
+            500,
+        )
+
+    if sub is None:
+        # SUBSCRIPTION_NOT_FOUND senaryosu
+        return jsonify(
+            {
+                "ok": True,
+                "status": "no_subscription",
+                "subscription": None,
+            }
+        ), 200
+
+    # Abonelik bulundu
+    return jsonify(
+        {
+            "ok": True,
+            "status": "subscription_found",
+            "subscription": {
+                "id": sub.subscription_id,
+                "planCode": sub.plan_code,
+                "status": sub.status.value,
+                "renewPeriod": sub.renew_period,
+                "renewsAt": sub.renews_at,
+            },
+        }
+    ), 200
 
 
 def create_app() -> Flask:
